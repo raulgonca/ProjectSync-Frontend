@@ -1,18 +1,19 @@
 
+import { Outlet } from 'react-router-dom';
+import Sidebar from './components/Sidebar'; // Asegúrate de crear este componente
+
 function App() {
-  
-
   return (
-    <>
-      <div className="flex flex-col items-center justify-center min-h-screen px-4 py-12 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-center text-green-800">
-          Project Sync
-        </h1>
-
-        <p className="text-center text-gray-600 mt-3">Esto esta casi terminado</p>
-      </div>
-    </>
-  )
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <Sidebar />
+      
+      {/* Contenido principal */}
+      <main className="flex-1 overflow-y-auto p-6">
+        <Outlet />
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
