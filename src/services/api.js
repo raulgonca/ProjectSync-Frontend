@@ -1,23 +1,52 @@
-// URL base para todas las peticiones API
-const API_URL = import.meta.env.VITE_URL_API + '/api';
+// Variables de entorno para la configuración de la API
+const API_URL = import.meta.env.VITE_URL_API;
+const BASE_API_URL = `${API_URL}/api`;
 
-// Función para obtener el token JWT del almacenamiento local
-const getToken = () => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  return user?.token;
-};
-
-// Función para manejar errores de respuesta
-const handleResponse = async (response) => {
-  // Para respuestas sin contenido (204)
-  if (response.status === 204) {
-    return {};
-  }
-  
+// Función principal para realizar peticiones a la API
+const fetchFromAPI = async (endpoint, options = {}) => {
   try {
+    // Configuración por defecto para las peticiones
+    const defaultOptions = {
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'omit'
+    };
+
+    // Añadir token de autenticación si es necesario
+    if (options.requiresAuth !== false) {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (user?.token) {
+        defaultOptions.headers['Authorization'] = `Bearer ${user.token}`;
+      }
+    }
+
+    // Añadir cuerpo a la petición si existe
+    if (options.body) {
+      defaultOptions.body = JSON.stringify(options.body);
+    }
+
+    // Construir la URL completa
+    let url = `${BASE_API_URL}${endpoint}`;
+    
+    // Añadir parámetros de consulta si existen
+    if (options.params) {
+      url += `?${new URLSearchParams(options.params)}`;
+    }
+
+    // Realizar la petición
+    const response = await fetch(url, defaultOptions);
+
+    // Para respuestas sin contenido (204)
+    if (response.status === 204) {
+      return {};
+    }
+
     // Obtener los datos de la respuesta
     const data = await response.json();
-    
+
     // Si la respuesta no es exitosa, lanzar un error
     if (!response.ok) {
       // Si es un error de autenticación (401), cerrar sesión
@@ -26,47 +55,17 @@ const handleResponse = async (response) => {
         window.location.href = '/login';
       }
       
-      // Lanzar un error con el mensaje del servidor o un mensaje genérico
-      throw data.message ? { message: data.message } : { message: 'Ha ocurrido un error' };
+      throw new Error(data.message || 'Ha ocurrido un error en la petición');
     }
-    
-    // Devolver los datos si todo está bien
+
     return data;
   } catch (error) {
     // Si hay un error al parsear JSON
     if (error instanceof SyntaxError) {
-      throw { message: 'Error al procesar la respuesta del servidor' };
+      throw new Error('Error al procesar la respuesta del servidor');
     }
     throw error;
   }
-};
-
-// Función para crear opciones de fetch con método y cuerpo
-const createFetchOptions = (method, body = null, requiresAuth = true) => {
-  const options = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    // Cambiamos a 'omit' para evitar problemas de CORS
-    credentials: 'omit'
-  };
-  
-  // Añadir el token de autenticación si es necesario
-  if (requiresAuth) {
-    const token = getToken();
-    if (token) {
-      options.headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
-  
-  // Añadir el cuerpo si existe
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-  
-  return options;
 };
 
 // Servicios para autenticación
@@ -74,57 +73,36 @@ export const authService = {
   // Iniciar sesión
   login: async (email, password) => {
     try {
-      console.log('Intentando login con:', { email }); // Para depuración
+      console.log('Intentando login con:', { email });
       
-      // Construimos la URL completa para depuración
-      const url = `${API_URL}/login`;
+      const data = await fetchFromAPI('/login', {
+        method: 'POST',
+        body: { email, password },
+        requiresAuth: false
+      });
       
-      // Las rutas de autenticación no requieren token
-      const options = createFetchOptions('POST', { email, password }, false);
+      console.log('Datos recibidos:', data);
       
-      // Usamos fetch con un timeout para evitar que se quede colgado
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos de timeout
-      
-      options.signal = controller.signal;
-      
-      try {
-        const response = await fetch(url, options);
-        clearTimeout(timeoutId);
-        console.log('Respuesta recibida:', response.status);
+      // Guardar el token y nombre de usuario en localStorage
+      if (data.token) {
+        // Guardamos el token
+        localStorage.setItem('token', data.token);
         
-        const data = await handleResponse(response);
-        console.log('Datos recibidos:', data); // Para depuración
+        // Creamos un objeto con la información del usuario
+        const userData = {
+          token: data.token,
+          username: data.username || data.user?.username || email.split('@')[0],
+        };
         
-        // Guardar el token y nombre de usuario en localStorage
-        if (data.token) {
-          // Guardamos el token
-          localStorage.setItem('token', data.token);
-          
-          // Creamos un objeto con la información del usuario
-          const userData = {
-            token: data.token,
-            username: data.username || data.user?.username || email.split('@')[0], // Usamos el nombre de usuario o una alternativa
-            // Puedes añadir más campos si los necesitas
-          };
-          
-          // Guardamos el objeto de usuario completo
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          console.log('Token y nombre de usuario guardados en localStorage');
-        } else {
-          console.error('No se recibió token en la respuesta');
-        }
+        // Guardamos el objeto de usuario completo
+        localStorage.setItem('user', JSON.stringify(userData));
         
-        return data;
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
-          console.error('La solicitud ha excedido el tiempo de espera');
-          throw { message: 'Tiempo de espera excedido. Verifica la conexión con el servidor.' };
-        }
-        throw fetchError;
+        console.log('Token y nombre de usuario guardados en localStorage');
+      } else {
+        console.error('No se recibió token en la respuesta');
       }
+      
+      return data;
     } catch (error) {
       console.error('Error en login:', error);
       throw error;
@@ -133,14 +111,11 @@ export const authService = {
   
   // Registrar nuevo usuario
   register: async (userData) => {
-    try {
-      // Las rutas de registro no requieren token
-      const response = await fetch(`${API_URL}/register`, createFetchOptions('POST', userData, false));
-      return handleResponse(response);
-    } catch (error) {
-      console.error('Error en registro:', error);
-      throw error;
-    }
+    return await fetchFromAPI('/register', {
+      method: 'POST',
+      body: userData,
+      requiresAuth: false
+    });
   },
   
   // Cerrar sesión
@@ -162,91 +137,192 @@ export const authService = {
 export const userService = {
   // Obtener todos los usuarios
   getAllUsers: async () => {
-    const response = await fetch(`${API_URL}/users`, createFetchOptions('GET'));
-    return handleResponse(response);
+    return await fetchFromAPI('/users');
   },
   
   // Obtener un usuario por ID
   getUserById: async (id) => {
-    const response = await fetch(`${API_URL}/users/${id}`, createFetchOptions('GET'));
-    return handleResponse(response);
+    return await fetchFromAPI(`/users/${id}`);
   },
   
   // Actualizar usuario
   updateUser: async (id, userData) => {
-    const response = await fetch(`${API_URL}/users/${id}`, createFetchOptions('PUT', userData));
-    return handleResponse(response);
+    return await fetchFromAPI(`/users/${id}`, {
+      method: 'PUT',
+      body: userData
+    });
   },
   
   // Eliminar usuario
   deleteUser: async (id) => {
-    const response = await fetch(`${API_URL}/users/${id}`, createFetchOptions('DELETE'));
-    return handleResponse(response);
+    return await fetchFromAPI(`/users/${id}`, {
+      method: 'DELETE'
+    });
+  },
+  
+  // Crear nuevo usuario
+  createUser: async (userData) => {
+    return await fetchFromAPI('/users', {
+      method: 'POST',
+      body: userData
+    });
   }
 };
 
-// Servicios para proyectos
+// Servicios para proyectos (repositorios)
 export const projectService = {
   // Obtener todos los proyectos
   getAllProjects: async () => {
-    const response = await fetch(`${API_URL}/projects`, createFetchOptions('GET'));
-    return handleResponse(response);
+    return await fetchFromAPI('/repos');  // Ruta para obtener repos donde el usuario es propietario
+  },
+  
+  // Obtener proyectos donde el usuario es colaborador
+  getCollaborationProjects: async () => {
+    return await fetchFromAPI('/repos/colaboraciones');
+  },
+  
+  // Obtener todos los proyectos (propietario + colaborador)
+  getAllUserProjects: async () => {
+    try {
+      // Obtener proyectos donde el usuario es propietario
+      const ownedProjects = await fetchFromAPI('/repos');
+      
+      // Obtener proyectos donde el usuario es colaborador
+      const collaborationProjects = await fetchFromAPI('/repos/colaboraciones');
+      
+      // Combinar ambos arrays y devolver el resultado
+      return [...ownedProjects, ...collaborationProjects];
+    } catch (error) {
+      console.error('Error al obtener todos los proyectos del usuario:', error);
+      throw error;
+    }
   },
   
   // Obtener un proyecto por ID
   getProjectById: async (id) => {
-    const response = await fetch(`${API_URL}/projects/${id}`, createFetchOptions('GET'));
-    return handleResponse(response);
+    return await fetchFromAPI(`/repo/${id}`);  // Corregido a la ruta correcta
   },
   
   // Crear nuevo proyecto
   createProject: async (projectData) => {
-    const response = await fetch(`${API_URL}/projects`, createFetchOptions('POST', projectData));
-    return handleResponse(response);
+    return await fetchFromAPI('/newrepo', {  // Corregido a la ruta correcta
+      method: 'POST',
+      body: projectData
+    });
   },
   
   // Actualizar proyecto
   updateProject: async (id, projectData) => {
-    const response = await fetch(`${API_URL}/projects/${id}`, createFetchOptions('PUT', projectData));
-    return handleResponse(response);
+    return await fetchFromAPI(`/updaterepo/${id}`, {  // Corregido a la ruta correcta
+      method: 'PUT',
+      body: projectData
+    });
   },
   
   // Eliminar proyecto
   deleteProject: async (id) => {
-    const response = await fetch(`${API_URL}/projects/${id}`, createFetchOptions('DELETE'));
-    return handleResponse(response);
+    return await fetchFromAPI(`/deleterepo/${id}`, {  // Corregido a la ruta correcta
+      method: 'DELETE'
+    });
+  },
+  
+  // Añadir colaborador a un proyecto
+  addCollaborator: async (projectId, userId) => {
+    return await fetchFromAPI(`/repos/${projectId}/colaboradores`, {
+      method: 'POST',
+      body: { userId }
+    });
+  },
+  
+  // Eliminar colaborador de un proyecto
+  removeCollaborator: async (projectId, userId) => {
+    return await fetchFromAPI(`/repos/${projectId}/colaboradores/${userId}`, {
+      method: 'DELETE'
+    });
+  },
+  
+  // Obtener colaboradores de un proyecto
+  getProjectCollaborators: async (projectId) => {
+    return await fetchFromAPI(`/repos/${projectId}/colaboradores`);
   }
-};
+}
 
 // Servicios para clientes
 export const clientService = {
   // Obtener todos los clientes
   getAllClients: async () => {
-    const response = await fetch(`${API_URL}/clients`, createFetchOptions('GET'));
-    return handleResponse(response);
+    return await fetchFromAPI('/clients');
   },
   
   // Obtener un cliente por ID
   getClientById: async (id) => {
-    const response = await fetch(`${API_URL}/clients/${id}`, createFetchOptions('GET'));
-    return handleResponse(response);
-  },
-  
-  // Crear nuevo cliente
-  createClient: async (clientData) => {
-    const response = await fetch(`${API_URL}/clients`, createFetchOptions('POST', clientData));
-    return handleResponse(response);
+    return await fetchFromAPI(`/clients/${id}`);
   },
   
   // Actualizar cliente
   updateClient: async (id, clientData) => {
-    const response = await fetch(`${API_URL}/clients/${id}`, createFetchOptions('PUT', clientData));
-    return handleResponse(response);
+    return await fetchFromAPI(`/clients/${id}`, {
+      method: 'PUT',
+      body: clientData
+    });
   },
   
   // Eliminar cliente
   deleteClient: async (id) => {
-    const response = await fetch(`${API_URL}/clients/${id}`, createFetchOptions('DELETE'));
-    return handleResponse(response);
+    return await fetchFromAPI(`/clients/${id}`, {
+      method: 'DELETE'
+    });
+  },
+  
+  // Crear nuevo cliente
+  createClient: async (clientData) => {
+    return await fetchFromAPI('/createclient', {
+      method: 'POST',
+      body: clientData
+    });
+  }
+};
+
+// Servicios para repositorios (proyectos)
+export const repoService = {
+  // Obtener todos los repositorios
+  getAllRepos: async () => {
+    return await fetchFromAPI('/repos');
+  },
+  
+  // Obtener un repositorio por ID
+  getRepoById: async (id) => {
+    return await fetchFromAPI(`/repos/${id}`);
+  },
+  
+  // Crear nuevo repositorio
+  createRepo: async (repoData) => {
+    return await fetchFromAPI('/repos', {
+      method: 'POST',
+      body: repoData
+    });
+  },
+  
+  // Actualizar repositorio
+  updateRepo: async (id, repoData) => {
+    return await fetchFromAPI(`/repos/${id}`, {
+      method: 'PUT',
+      body: repoData
+    });
+  },
+  
+  // Eliminar repositorio
+  deleteRepo: async (id) => {
+    return await fetchFromAPI(`/repos/${id}`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// Servicio para información general
+export const mainService = {
+  // Obtener información de bienvenida de la API
+  getApiInfo: async () => {
+    return await fetchFromAPI('/main');
   }
 };

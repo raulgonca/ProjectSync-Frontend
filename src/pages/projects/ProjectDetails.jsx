@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { projectService } from '../../services/api';
 
 const ProjectDetails = () => {
   const { id } = useParams();
@@ -7,35 +8,39 @@ const ProjectDetails = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProject, setEditedProject] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Simulación de carga de datos del proyecto
+  // Cargar datos del proyecto desde la API
   useEffect(() => {
-    // Aquí harías tu llamada a la API para obtener los detalles del proyecto
-    // Por ahora usamos datos de ejemplo
-    const mockProject = {
-      id: parseInt(id),
-      title: 'Desarrollo de aplicación web',
-      date: '2023-05-15',
-      endDate: '2023-09-30',
-      description: 'Desarrollo de una aplicación web completa con React y Node.js para gestión de inventario y ventas. Incluye panel de administración, informes y gestión de usuarios. La aplicación debe ser responsive y compatible con los principales navegadores.',
-      status: 'in-progress',
-      client: 'TechSolutions S.L.',
-      budget: 15000,
-      team: ['Ana García', 'Carlos López', 'María Rodríguez'],
-      tasks: [
-        { id: 1, title: 'Diseño de interfaz', status: 'completed', assignee: 'Ana García' },
-        { id: 2, title: 'Desarrollo frontend', status: 'in-progress', assignee: 'Carlos López' },
-        { id: 3, title: 'Desarrollo backend', status: 'in-progress', assignee: 'María Rodríguez' },
-        { id: 4, title: 'Pruebas de integración', status: 'pending', assignee: 'Ana García' },
-        { id: 5, title: 'Despliegue', status: 'pending', assignee: 'Carlos López' }
-      ]
+    const fetchProjectData = async () => {
+      try {
+        const data = await projectService.getProjectById(id);
+        
+        // Adaptar los datos para que coincidan con la estructura esperada
+        const formattedProject = {
+          id: data.id,
+          title: data.projectname || data.title || 'Sin título',
+          date: data.fechaInicio || data.date || new Date().toISOString().split('T')[0],
+          endDate: data.fechaFin || data.endDate || new Date().toISOString().split('T')[0],
+          description: data.description || 'Sin descripción',
+          status: data.status || 'pending',
+          client: data.client || 'Sin cliente',
+          budget: data.budget || 0,
+          team: data.team || [],
+          tasks: data.tasks || []
+        };
+        
+        setProject(formattedProject);
+        setEditedProject(formattedProject);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error al cargar los detalles del proyecto:', error);
+        setError('No se pudo cargar la información del proyecto. Por favor, inténtalo de nuevo más tarde.');
+        setLoading(false);
+      }
     };
     
-    setTimeout(() => {
-      setProject(mockProject);
-      setEditedProject(mockProject);
-      setLoading(false);
-    }, 800);
+    fetchProjectData();
   }, [id]);
 
   // Función para manejar cambios en el formulario de edición
@@ -48,10 +53,33 @@ const ProjectDetails = () => {
   };
 
   // Función para guardar los cambios
-  const handleSave = () => {
-    // Aquí harías tu llamada a la API para guardar los cambios
-    setProject(editedProject);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      
+      // Adaptar los datos para que coincidan con la estructura esperada por el backend
+      const projectData = {
+        projectname: editedProject.title,
+        fechaInicio: editedProject.date,
+        fechaFin: editedProject.endDate,
+        description: editedProject.description,
+        status: editedProject.status,
+        client: editedProject.client,
+        budget: editedProject.budget,
+      };
+      
+      // Llamar al servicio para actualizar el proyecto
+      await projectService.updateProject(id, projectData);
+      
+      // Actualizar el estado local
+      setProject(editedProject);
+      setIsEditing(false);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error al guardar los cambios:', error);
+      setError('No se pudieron guardar los cambios. Por favor, inténtalo de nuevo más tarde.');
+      setLoading(false);
+    }
   };
 
   // Función para formatear la fecha
@@ -92,6 +120,20 @@ const ProjectDetails = () => {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen">
+        <div className="text-red-500 mb-4">{error}</div>
+        <Link 
+          to="/main/projects" 
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Volver a proyectos
+        </Link>
       </div>
     );
   }
@@ -281,44 +323,52 @@ const ProjectDetails = () => {
             
             <div className="mb-8">
               <h3 className="font-semibold text-gray-700 mb-4">Equipo</h3>
-              <div className="flex flex-wrap gap-2">
-                {project.team.map((member, index) => (
-                  <div key={index} className="flex items-center bg-gray-100 rounded-full px-3 py-1">
-                    <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs mr-2">
-                      {member.charAt(0)}
+              {project.team && project.team.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {project.team.map((member, index) => (
+                    <div key={index} className="flex items-center bg-gray-100 rounded-full px-3 py-1">
+                      <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs mr-2">
+                        {member.charAt(0)}
+                      </div>
+                      <span className="text-sm">{member}</span>
                     </div>
-                    <span className="text-sm">{member}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No hay miembros asignados a este proyecto</p>
+              )}
             </div>
             
             <div>
               <h3 className="font-semibold text-gray-700 mb-4">Tareas</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-white">
-                  <thead>
-                    <tr className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-                      <th className="py-3 px-6 text-left">Tarea</th>
-                      <th className="py-3 px-6 text-left">Responsable</th>
-                      <th className="py-3 px-6 text-center">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-gray-600 text-sm">
-                    {project.tasks.map((task) => (
-                      <tr key={task.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="py-3 px-6 text-left">{task.title}</td>
-                        <td className="py-3 px-6 text-left">{task.assignee}</td>
-                        <td className="py-3 px-6 text-center">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClasses(task.status)}`}>
-                            {getStatusText(task.status)}
-                          </span>
-                        </td>
+              {project.tasks && project.tasks.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white">
+                    <thead>
+                      <tr className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                        <th className="py-3 px-6 text-left">Tarea</th>
+                        <th className="py-3 px-6 text-left">Responsable</th>
+                        <th className="py-3 px-6 text-center">Estado</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="text-gray-600 text-sm">
+                      {project.tasks.map((task) => (
+                        <tr key={task.id} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="py-3 px-6 text-left">{task.title}</td>
+                          <td className="py-3 px-6 text-left">{task.assignee}</td>
+                          <td className="py-3 px-6 text-center">
+                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClasses(task.status)}`}>
+                              {getStatusText(task.status)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500">No hay tareas asignadas a este proyecto</p>
+              )}
             </div>
           </div>
         )}
