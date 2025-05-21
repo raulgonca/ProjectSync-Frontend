@@ -12,10 +12,11 @@ import Register from '../pages/auth/Register';
 // Páginas principales
 import Dashboard from '../pages/Dashboard';
 import Projects from '../pages/projects/Projects';
-import ProjectDetails from '../pages/projects/ProjectDetails';
 import Users from '../pages/users/Users';
 import Clients from '../pages/clients/Clients';
 import NotFound from '../pages/NotFound';
+import ProjectCreate from '../pages/projects/ProjectCreate';
+import ProjectDetail from '../pages/projects/ProjectDetails'; 
 
 // Función para verificar si el usuario está autenticado
 const isAuthenticated = () => {
@@ -91,8 +92,12 @@ const router = createBrowserRouter([
             element: <Projects />
           },
           {
+            path: 'projects/new',
+            element: <ProjectCreate />
+          },
+          {
             path: 'projects/:id',
-            element: <ProjectDetails />
+            element: <ProjectDetail />
           },
           {
             path: 'users',

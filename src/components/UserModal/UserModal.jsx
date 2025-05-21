@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FaTimes, FaInfoCircle, FaUser, FaEnvelope, FaLock, FaIdCard, FaUserTag } from 'react-icons/fa';
 
-const UserModal = ({ isOpen, onClose, onSave, existingUsers }) => {
+const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
   const initialFormData = {
     username: '',
     email: '',
@@ -68,11 +68,6 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers }) => {
     // Validar confirmación de contraseña
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
-    }
-    
-    // Validar nombre completo (obligatorio)
-    if (!formData.name.trim()) {
-      newErrors.name = 'El nombre completo es obligatorio';
     }
     
     // Validar rol (obligatorio)
@@ -200,23 +195,6 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers }) => {
               placeholder="******"
             />
             {errors.confirmPassword && <p className="text-red-600 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.confirmPassword}</p>}
-          </div>
-          
-          <div className="mb-4">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-              <FaIdCard className="mr-2 text-purple-600" />
-              Nombre completo <span className="text-red-500 ml-1">*</span>
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
-              placeholder="Nombre Apellido"
-            />
-            {errors.name && <p className="text-red-600 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.name}</p>}
           </div>
           
           <div className="mb-6">

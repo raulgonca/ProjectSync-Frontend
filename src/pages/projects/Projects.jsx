@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import ProjectCard from "../../components/projects/ProjectCard";
 import { projectService } from "../../services/api";
+import { Link } from "react-router-dom";
+import { FaPlus, FaSearch } from "react-icons/fa"; // Importar iconos de React Icons
 
 const Projects = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -9,15 +11,17 @@ const Projects = () => {
   const [error, setError] = useState(null);
 
   // Cargar datos de proyectos desde la API
-  // En Projects.jsx
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        // Usar getAllUserProjects en lugar de getAllProjects
-        const data = await projectService.getAllUserProjects();
+        // Solo obtener los proyectos donde el usuario es propietario
+        const ownedProjects = await projectService.getAllProjects();
+        console.log("Proyectos propios:", ownedProjects);
+
+        const ownedProjectsArray = Array.isArray(ownedProjects) ? ownedProjects : [];
 
         // Adaptar los datos para que coincidan con la estructura esperada
-        const formattedProjects = data.map((project) => ({
+        const formattedProjects = ownedProjectsArray.map((project) => ({
           id: project.id,
           title: project.projectname || project.title || "Sin título",
           date:
@@ -27,7 +31,7 @@ const Projects = () => {
           description: project.description || "Sin descripción",
           status: project.status || "pending",
           client: project.client?.name || "Sin cliente",
-          team: project.colaboradores?.map((c) => c.username) || [],
+          // Elimina el campo team relacionado con colaboradores
         }));
 
         setProjects(formattedProjects);
@@ -69,32 +73,27 @@ const Projects = () => {
           Lista de Proyectos
         </h1>
 
-        <div className="w-full md:w-1/3">
-          <div className="relative">
+        <div className="flex w-full md:w-auto items-center space-x-3">
+          <div className="relative w-full md:w-64">
             <input
               type="text"
-              placeholder="Buscar por nombre de proyecto..."
+              placeholder="Buscar proyecto..."
               value={searchTerm}
               onChange={handleSearch}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                className="w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                ></path>
-              </svg>
+              <FaSearch className="text-gray-400" />
             </div>
           </div>
+          
+          <Link 
+            to="/main/projects/new" 
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center whitespace-nowrap"
+          >
+            <FaPlus className="mr-2" />
+            Crear Proyecto
+          </Link>
         </div>
       </div>
 

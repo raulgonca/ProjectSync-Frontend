@@ -1,56 +1,95 @@
 import React from 'react';
-import { FaUser, FaEnvelope, FaUserTag, FaEdit, FaTrash } from 'react-icons/fa';
+import { useAuth } from '../../context/AuthContext';
+import { FaPen, FaTrashAlt } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 const UserCard = ({ user, onEdit, onDelete }) => {
+  const auth = useAuth();
+  const isAdmin = auth && auth.currentUser?.cargo === 'ROLE_ADMIN';
+
+  const getInitials = (username) => {
+    if (!username) return 'U';
+    const parts = username.trim().split(' ');
+    return parts.length > 1
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : username[0].toUpperCase();
+  };
+
+  const generateBgColor = (username) => {
+    const colors = [
+      'from-blue-500 to-blue-400',
+      'from-yellow-600 to-yellow-500',
+      'from-teal-500 to-teal-400',
+      'from-indigo-500 to-indigo-400',
+      'from-purple-500 to-purple-400',
+      'from-red-500 to-red-400',
+    ];
+    const sum = username
+      ? username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      : 0;
+    return colors[sum % colors.length];
+  };
+
+  // Función para manejar el clic en el botón de eliminar
+  const handleDelete = () => {
+    if (onDelete && user && user.id) {
+      toast.info(`Eliminando usuario con ID: ${user.id}`);
+      onDelete(user.id);
+    } else {
+      toast.error('No se puede eliminar: falta ID de usuario o función onDelete');
+      console.error('No se puede eliminar: falta ID de usuario o función onDelete');
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-5 hover:shadow-lg transition-shadow">
-      <div className="relative">
-        {/* Botones de acción en la esquina superior derecha */}
-        <div className="absolute top-0 right-0 flex space-x-2">
-          <button 
-            onClick={() => onEdit(user)} 
-            className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"
-            title="Editar usuario"
+    <div className="bg-white/40 backdrop-blur-md rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-white/20 p-4 sm:p-6 relative w-full max-w-[280px] sm:max-w-[300px] overflow-hidden">
+      {isAdmin && (
+        <>
+          {/* Botón Editar a la izquierda */}
+          <button
+            className="absolute top-2 sm:top-3 left-2 sm:left-3 w-6 h-6 sm:w-7 sm:h-7 bg-white/70 hover:bg-white rounded-full flex items-center justify-center shadow transition z-10"
+            onClick={() => onEdit && onEdit(user)}
+            title="Editar"
           >
-            <FaEdit />
+            <FaPen className="text-blue-600 text-xs sm:text-sm" />
           </button>
-          <button 
-            onClick={() => onDelete(user.id)} 
-            className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
-            title="Eliminar usuario"
+          {/* Botón Eliminar a la derecha */}
+          <button
+            className="absolute top-2 sm:top-3 right-2 sm:right-3 w-6 h-6 sm:w-7 sm:h-7 bg-white/70 hover:bg-white rounded-full flex items-center justify-center shadow transition z-10"
+            onClick={handleDelete}
+            title="Eliminar"
           >
-            <FaTrash />
+            <FaTrashAlt className="text-red-600 text-xs sm:text-sm" />
           </button>
+        </>
+      )}
+
+      {/* Avatar */}
+      <div className="flex flex-col items-center mb-4 sm:mb-5 relative z-0">
+        <div
+          className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br ${generateBgColor(
+            user?.username
+          )} flex items-center justify-center text-white font-bold text-2xl sm:text-3xl shadow-lg border-[3px] border-white/70`}
+        >
+          {getInitials(user?.username)}
         </div>
-        
-        {/* Contenido centrado de la tarjeta */}
-        <div className="flex flex-col items-center text-center">
-          {/* Icono de usuario grande en el centro */}
-          <div className="bg-purple-100 p-6 rounded-full mb-4">
-            <FaUser className="text-purple-600 text-4xl" />
-          </div>
-          
-          {/* Nombre de usuario */}
-          <h3 className="text-xl font-semibold text-gray-800 mb-1">{user.name}</h3>
-          <p className="text-sm text-gray-500 mb-4">@{user.username}</p>
-          
-          {/* Información adicional */}
-          <div className="w-full space-y-3 mt-2">
-            <div className="flex items-center justify-center text-gray-600">
-              <FaEnvelope className="mr-2 text-purple-500" />
-              <span>{user.email}</span>
-            </div>
-            <div className="flex items-center justify-center text-gray-600">
-              <FaUserTag className="mr-2 text-purple-500" />
-              <span className={`px-3 py-1 rounded-full text-xs ${
-                user.role === 'admin' 
-                  ? 'bg-purple-100 text-purple-800' 
-                  : 'bg-blue-100 text-blue-800'
-              }`}>
-                {user.role === 'admin' ? 'Administrador' : 'Usuario'}
-              </span>
-            </div>
-          </div>
+      </div>
+
+      {/* Info alineada */}
+      <div className="space-y-2 text-xs sm:text-sm text-gray-800 font-medium font-sans">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-600 font-semibold">Nombre:</span>
+          <span className="text-right max-w-[60%] truncate">{user?.username || 'Usuario'}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-600 font-semibold">Cargo:</span>
+          <span
+            className={`text-right ${
+              user?.cargo === 'ROLE_ADMIN' ? 'text-purple-700' : 'text-blue-600'
+            }`}
+          >
+            {user?.cargo === 'ROLE_ADMIN' ? 'Administrador' : 'Usuario'}
+          </span>
         </div>
       </div>
     </div>

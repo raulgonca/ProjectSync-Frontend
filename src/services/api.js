@@ -9,7 +9,6 @@ const fetchFromAPI = async (endpoint, options = {}) => {
     const defaultOptions = {
       method: options.method || 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
       credentials: 'omit'
@@ -23,8 +22,11 @@ const fetchFromAPI = async (endpoint, options = {}) => {
       }
     }
 
-    // Añadir cuerpo a la petición si existe
-    if (options.body) {
+    // Si el body es FormData, no poner Content-Type
+    if (options.body instanceof FormData) {
+      defaultOptions.body = options.body;
+    } else if (options.body) {
+      defaultOptions.headers['Content-Type'] = 'application/json';
       defaultOptions.body = JSON.stringify(options.body);
     }
 
@@ -35,6 +37,9 @@ const fetchFromAPI = async (endpoint, options = {}) => {
     if (options.params) {
       url += `?${new URLSearchParams(options.params)}`;
     }
+
+    // LOG DE DEPURACIÓN: Verifica cabeceras y URL
+    console.log('fetchFromAPI:', { url, headers: defaultOptions.headers, method: defaultOptions.method });
 
     // Realizar la petición
     const response = await fetch(url, defaultOptions);
@@ -83,20 +88,13 @@ export const authService = {
       
       console.log('Datos recibidos:', data);
       
-      // Guardar el token y nombre de usuario en localStorage
+      // Guardar SOLO el objeto user (con token y username) en localStorage
       if (data.token) {
-        // Guardamos el token
-        localStorage.setItem('token', data.token);
-        
-        // Creamos un objeto con la información del usuario
         const userData = {
           token: data.token,
           username: data.username || data.user?.username || email.split('@')[0],
         };
-        
-        // Guardamos el objeto de usuario completo
         localStorage.setItem('user', JSON.stringify(userData));
-        
         console.log('Token y nombre de usuario guardados en localStorage');
       } else {
         console.error('No se recibió token en la respuesta');
@@ -122,11 +120,9 @@ export const authService = {
   logout: () => {
     // Eliminar ambos elementos del localStorage
     localStorage.removeItem('user');
-    localStorage.removeItem('token');
     
     // Verificar que se hayan eliminado correctamente
     console.log('Usuario eliminado:', localStorage.getItem('user'));
-    console.log('Token eliminado:', localStorage.getItem('token'));
     
     // Redireccionar a la página de login
     window.location.href = '/login';
@@ -147,7 +143,7 @@ export const userService = {
   
   // Actualizar usuario
   updateUser: async (id, userData) => {
-    return await fetchFromAPI(`/users/${id}`, {
+    return await fetchFromAPI(`/updateusers/${id}`, { // path correcto según backend
       method: 'PUT',
       body: userData
     });
@@ -155,14 +151,14 @@ export const userService = {
   
   // Eliminar usuario
   deleteUser: async (id) => {
-    return await fetchFromAPI(`/users/${id}`, {
+    return await fetchFromAPI(`/deleteusers/${id}`, { // path correcto según backend
       method: 'DELETE'
     });
   },
   
   // Crear nuevo usuario
   createUser: async (userData) => {
-    return await fetchFromAPI('/users', {
+    return await fetchFromAPI('/newusers', { // path correcto según backend
       method: 'POST',
       body: userData
     });
@@ -173,12 +169,25 @@ export const userService = {
 export const projectService = {
   // Obtener todos los proyectos
   getAllProjects: async () => {
-    return await fetchFromAPI('/repos');  // Ruta para obtener repos donde el usuario es propietario
+    try {
+      // Llama al endpoint protegido, autenticación por defecto (no pongas requiresAuth: false)
+      const response = await fetchFromAPI('/repos/all');
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.error('Error al obtener proyectos propios:', error);
+      return [];
+    }
   },
   
   // Obtener proyectos donde el usuario es colaborador
   getCollaborationProjects: async () => {
-    return await fetchFromAPI('/repos/colaboraciones');
+    try {
+      const response = await fetchFromAPI('/repos/colaboraciones');
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.error('Error al obtener colaboraciones:', error);
+      return [];
+    }
   },
   
   // Obtener todos los proyectos (propietario + colaborador)
@@ -186,15 +195,17 @@ export const projectService = {
     try {
       // Obtener proyectos donde el usuario es propietario
       const ownedProjects = await fetchFromAPI('/repos');
+      const ownedProjectsArray = Array.isArray(ownedProjects) ? ownedProjects : [];
       
       // Obtener proyectos donde el usuario es colaborador
       const collaborationProjects = await fetchFromAPI('/repos/colaboraciones');
+      const collaborationProjectsArray = Array.isArray(collaborationProjects) ? collaborationProjects : [];
       
       // Combinar ambos arrays y devolver el resultado
-      return [...ownedProjects, ...collaborationProjects];
+      return [...ownedProjectsArray, ...collaborationProjectsArray];
     } catch (error) {
       console.error('Error al obtener todos los proyectos del usuario:', error);
-      throw error;
+      return [];
     }
   },
   
@@ -287,17 +298,17 @@ export const clientService = {
 export const repoService = {
   // Obtener todos los repositorios
   getAllRepos: async () => {
-    return await fetchFromAPI('/repos');
+    return await fetchFromAPI('/repos/all');
   },
   
   // Obtener un repositorio por ID
   getRepoById: async (id) => {
-    return await fetchFromAPI(`/repos/${id}`);
+    return await fetchFromAPI(`/repos/find/${id}`);
   },
   
   // Crear nuevo repositorio
   createRepo: async (repoData) => {
-    return await fetchFromAPI('/repos', {
+    return await fetchFromAPI('/newrepo', { // <-- Corrige aquí, elimina espacios
       method: 'POST',
       body: repoData
     });
@@ -305,15 +316,15 @@ export const repoService = {
   
   // Actualizar repositorio
   updateRepo: async (id, repoData) => {
-    return await fetchFromAPI(`/repos/${id}`, {
-      method: 'PUT',
+    return await fetchFromAPI(`/updaterepo/${id}`, {
+      method: 'PATCH',
       body: repoData
     });
   },
   
   // Eliminar repositorio
   deleteRepo: async (id) => {
-    return await fetchFromAPI(`/repos/${id}`, {
+    return await fetchFromAPI(`/deleterepo/${id}`, { // <-- Corrige aquí la ruta
       method: 'DELETE'
     });
   }

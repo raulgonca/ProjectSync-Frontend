@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { authService } from '../services/api';
+// Importa los iconos de react-icons
+import { FaTachometerAlt, FaFolderOpen, FaUsers, FaBuilding, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 // Importa aquí tu logo o usa un placeholder
 // import Logo from '../assets/logo.png';
@@ -50,22 +52,22 @@ const Sidebar = () => {
     { 
       path: '/main', 
       name: 'Dashboard', 
-      icon: '📊' 
+      icon: <FaTachometerAlt />
     },
     { 
       path: '/main/projects', 
       name: 'Proyectos', 
-      icon: '📁' 
+      icon: <FaFolderOpen />
     },
     { 
       path: '/main/users', 
       name: 'Usuarios', 
-      icon: '👥' 
+      icon: <FaUsers />
     },
     { 
       path: '/main/clients', 
       name: 'Clientes', 
-      icon: '🏢' 
+      icon: <FaBuilding />
     },
   ];
 
@@ -93,7 +95,7 @@ const Sidebar = () => {
         className={`absolute top-4 ${collapsed ? 'right-[-12px]' : 'right-4'} bg-gray-700 hover:bg-gray-600 text-white p-1 rounded-full w-6 h-6 flex items-center justify-center shadow-md transition-all duration-300 z-20`}
         aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
       >
-        {collapsed ? '→' : '←'}
+        {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
       </button>
 
       {/* Separador */}

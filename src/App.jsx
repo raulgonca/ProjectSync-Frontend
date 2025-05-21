@@ -1,4 +1,6 @@
-
+import React from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './components/Sidebar'; // Asegúrate de crear este componente
 
@@ -12,6 +14,7 @@ function App() {
       <main className="flex-1 overflow-y-auto p-6">
         <Outlet />
       </main>
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }
