@@ -5,6 +5,10 @@ const BASE_API_URL = `${API_URL}/api`;
 // Función principal para realizar peticiones a la API
 const fetchFromAPI = async (endpoint, options = {}) => {
   try {
+    if (!API_URL) {
+      throw new Error('La URL de la API (VITE_URL_API) no está definida. Revisa tu archivo .env');
+    }
+
     // Configuración por defecto para las peticiones
     const defaultOptions = {
       method: options.method || 'GET',
@@ -14,12 +18,13 @@ const fetchFromAPI = async (endpoint, options = {}) => {
       credentials: 'omit'
     };
 
-    // Añadir token de autenticación si es necesario
-    if (options.requiresAuth !== false) {
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user?.token) {
-        defaultOptions.headers['Authorization'] = `Bearer ${user.token}`;
-      }
+    // Añadir token a las cabeceras si existe y no es petición pública
+    const user = localStorage.getItem('user');
+    const token = user ? JSON.parse(user).token : null;
+    // Por defecto, requiere autenticación salvo que options.requiresAuth === false
+    const requiresAuth = options.requiresAuth !== false;
+    if (token && requiresAuth) {
+      defaultOptions.headers['Authorization'] = `Bearer ${token}`;
     }
 
     // Si el body es FormData, no poner Content-Type
@@ -32,14 +37,13 @@ const fetchFromAPI = async (endpoint, options = {}) => {
 
     // Construir la URL completa
     let url = `${BASE_API_URL}${endpoint}`;
-    
     // Añadir parámetros de consulta si existen
     if (options.params) {
       url += `?${new URLSearchParams(options.params)}`;
     }
 
-    // LOG DE DEPURACIÓN: Verifica cabeceras y URL
-    console.log('fetchFromAPI:', { url, headers: defaultOptions.headers, method: defaultOptions.method });
+    // Para depuración, muestra la URL final
+    // console.log('URL final de la petición:', url);
 
     // Realizar la petición
     const response = await fetch(url, defaultOptions);
@@ -49,17 +53,19 @@ const fetchFromAPI = async (endpoint, options = {}) => {
       return {};
     }
 
-    // Obtener los datos de la respuesta
-    const data = await response.json();
+    // Leer el cuerpo de la respuesta solo una vez
+    const responseText = await response.text();
+    let data;
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch (e) {
+      console.error('Respuesta no válida del servidor:', responseText );
+      throw new Error('Error al procesar la respuesta del servidor: ' + responseText);
+    }
 
     // Si la respuesta no es exitosa, lanzar un error
     if (!response.ok) {
-      // Si es un error de autenticación (401), cerrar sesión
-      if (response.status === 401) {
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      }
-      
+      console.error('Respuesta con error:', response.status, responseText);
       throw new Error(data.message || 'Ha ocurrido un error en la petición');
     }
 
@@ -77,36 +83,21 @@ const fetchFromAPI = async (endpoint, options = {}) => {
 export const authService = {
   // Iniciar sesión
   login: async (email, password) => {
-    try {
-      console.log('Intentando login con:', { email });
-      
-      const data = await fetchFromAPI('/login', {
-        method: 'POST',
-        body: { email, password },
-        requiresAuth: false
-      });
-      
-      console.log('Datos recibidos:', data);
-      
-      // Guardar SOLO el objeto user (con token y username) en localStorage
-      if (data.token) {
-        const userData = {
-          token: data.token,
-          username: data.username || data.user?.username || email.split('@')[0],
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-        console.log('Token y nombre de usuario guardados en localStorage');
-      } else {
-        console.error('No se recibió token en la respuesta');
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error en login:', error);
-      throw error;
+    const data = await fetchFromAPI('/login', {
+      method: 'POST',
+      body: { email, password },
+      requiresAuth: false
+    });
+    if (data.token) {
+      const userData = {
+        token: data.token,
+        username: data.username || data.user?.username || email.split('@')[0],
+        roles: data.roles || data.user?.roles || []
+      };
+      localStorage.setItem('user', JSON.stringify(userData));
     }
+    return data;
   },
-  
   // Registrar nuevo usuario
   register: async (userData) => {
     return await fetchFromAPI('/register', {
@@ -115,16 +106,10 @@ export const authService = {
       requiresAuth: false
     });
   },
-  
   // Cerrar sesión
   logout: () => {
-    // Eliminar ambos elementos del localStorage
     localStorage.removeItem('user');
-    
-    // Verificar que se hayan eliminado correctamente
     console.log('Usuario eliminado:', localStorage.getItem('user'));
-    
-    // Redireccionar a la página de login
     window.location.href = '/login';
   }
 };
@@ -135,12 +120,10 @@ export const userService = {
   getAllUsers: async () => {
     return await fetchFromAPI('/users');
   },
-  
   // Obtener un usuario por ID
   getUserById: async (id) => {
     return await fetchFromAPI(`/users/${id}`);
   },
-  
   // Actualizar usuario
   updateUser: async (id, userData) => {
     return await fetchFromAPI(`/updateusers/${id}`, { // path correcto según backend
@@ -148,14 +131,12 @@ export const userService = {
       body: userData
     });
   },
-  
   // Eliminar usuario
   deleteUser: async (id) => {
     return await fetchFromAPI(`/deleteusers/${id}`, { // path correcto según backend
       method: 'DELETE'
     });
   },
-  
   // Crear nuevo usuario
   createUser: async (userData) => {
     return await fetchFromAPI('/newusers', { // path correcto según backend
@@ -169,51 +150,29 @@ export const userService = {
 export const projectService = {
   // Obtener todos los proyectos
   getAllProjects: async () => {
-    try {
-      // Llama al endpoint protegido, autenticación por defecto (no pongas requiresAuth: false)
-      const response = await fetchFromAPI('/repos/all');
-      return Array.isArray(response) ? response : [];
-    } catch (error) {
-      console.error('Error al obtener proyectos propios:', error);
-      return [];
-    }
+    const response = await fetchFromAPI('/repos/all');
+    return Array.isArray(response) ? response : [];
   },
-  
   // Obtener proyectos donde el usuario es colaborador
   getCollaborationProjects: async () => {
-    try {
-      const response = await fetchFromAPI('/repos/colaboraciones');
-      return Array.isArray(response) ? response : [];
-    } catch (error) {
-      console.error('Error al obtener colaboraciones:', error);
-      return [];
-    }
+    const response = await fetchFromAPI('/repos/colaboraciones');
+    return Array.isArray(response) ? response : [];
   },
-  
   // Obtener todos los proyectos (propietario + colaborador)
   getAllUserProjects: async () => {
-    try {
-      // Obtener proyectos donde el usuario es propietario
-      const ownedProjects = await fetchFromAPI('/repos');
-      const ownedProjectsArray = Array.isArray(ownedProjects) ? ownedProjects : [];
-      
-      // Obtener proyectos donde el usuario es colaborador
-      const collaborationProjects = await fetchFromAPI('/repos/colaboraciones');
-      const collaborationProjectsArray = Array.isArray(collaborationProjects) ? collaborationProjects : [];
-      
-      // Combinar ambos arrays y devolver el resultado
-      return [...ownedProjectsArray, ...collaborationProjectsArray];
-    } catch (error) {
-      console.error('Error al obtener todos los proyectos del usuario:', error);
-      return [];
-    }
+    // Obtener proyectos donde el usuario es propietario
+    const ownedProjects = await fetchFromAPI('/repos');
+    const ownedProjectsArray = Array.isArray(ownedProjects) ? ownedProjects : [];
+    // Obtener proyectos donde el usuario es colaborador
+    const collaborationProjects = await fetchFromAPI('/repos/colaboraciones');
+    const collaborationProjectsArray = Array.isArray(collaborationProjects) ? collaborationProjects : [];
+    // Combinar ambos arrays y devolver el resultado
+    return [...ownedProjectsArray, ...collaborationProjectsArray];
   },
-  
   // Obtener un proyecto por ID
   getProjectById: async (id) => {
     return await fetchFromAPI(`/repo/${id}`);  // Corregido a la ruta correcta
   },
-  
   // Crear nuevo proyecto
   createProject: async (projectData) => {
     return await fetchFromAPI('/newrepo', {  // Corregido a la ruta correcta
@@ -221,7 +180,6 @@ export const projectService = {
       body: projectData
     });
   },
-  
   // Actualizar proyecto
   updateProject: async (id, projectData) => {
     return await fetchFromAPI(`/updaterepo/${id}`, {  // Corregido a la ruta correcta
@@ -229,14 +187,12 @@ export const projectService = {
       body: projectData
     });
   },
-  
   // Eliminar proyecto
   deleteProject: async (id) => {
     return await fetchFromAPI(`/deleterepo/${id}`, {  // Corregido a la ruta correcta
       method: 'DELETE'
     });
   },
-  
   // Añadir colaborador a un proyecto
   addCollaborator: async (projectId, userId) => {
     return await fetchFromAPI(`/repos/${projectId}/colaboradores`, {
@@ -244,14 +200,12 @@ export const projectService = {
       body: { userId }
     });
   },
-  
   // Eliminar colaborador de un proyecto
   removeCollaborator: async (projectId, userId) => {
     return await fetchFromAPI(`/repos/${projectId}/colaboradores/${userId}`, {
       method: 'DELETE'
     });
   },
-  
   // Obtener colaboradores de un proyecto
   getProjectCollaborators: async (projectId) => {
     return await fetchFromAPI(`/repos/${projectId}/colaboradores`);
@@ -264,12 +218,10 @@ export const clientService = {
   getAllClients: async () => {
     return await fetchFromAPI('/clients');
   },
-  
   // Obtener un cliente por ID
   getClientById: async (id) => {
     return await fetchFromAPI(`/clients/${id}`);
   },
-  
   // Actualizar cliente
   updateClient: async (id, clientData) => {
     return await fetchFromAPI(`/clients/${id}`, {
@@ -277,14 +229,12 @@ export const clientService = {
       body: clientData
     });
   },
-  
   // Eliminar cliente
   deleteClient: async (id) => {
     return await fetchFromAPI(`/clients/${id}`, {
       method: 'DELETE'
     });
   },
-  
   // Crear nuevo cliente
   createClient: async (clientData) => {
     return await fetchFromAPI('/createclient', {
@@ -300,20 +250,17 @@ export const repoService = {
   getAllRepos: async () => {
     return await fetchFromAPI('/repos/all');
   },
-  
   // Obtener un repositorio por ID
   getRepoById: async (id) => {
     return await fetchFromAPI(`/repos/find/${id}`);
   },
-  
   // Crear nuevo repositorio
   createRepo: async (repoData) => {
-    return await fetchFromAPI('/newrepo', { // <-- Corrige aquí, elimina espacios
+    return await fetchFromAPI('/newrepo', { 
       method: 'POST',
       body: repoData
     });
   },
-  
   // Actualizar repositorio
   updateRepo: async (id, repoData) => {
     return await fetchFromAPI(`/updaterepo/${id}`, {
@@ -321,7 +268,6 @@ export const repoService = {
       body: repoData
     });
   },
-  
   // Eliminar repositorio
   deleteRepo: async (id) => {
     return await fetchFromAPI(`/deleterepo/${id}`, { // <-- Corrige aquí la ruta

@@ -14,8 +14,8 @@ const ColaboradoresModal = ({ open, onClose, repoId, ownerId }) => {
       userService.getAllUsers(),
       projectService.getProjectCollaborators(repoId)
     ]).then(([users, colabs]) => {
-      setAllUsers(users);
-      setColaboradores(colabs);
+      setAllUsers(Array.isArray(users) ? users : []);
+      setColaboradores(Array.isArray(colabs) ? colabs : []);
       setLoading(false);
     });
   }, [open, repoId, accion]);

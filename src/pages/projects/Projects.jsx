@@ -16,9 +16,8 @@ const Projects = () => {
       try {
         // Solo obtener los proyectos donde el usuario es propietario
         const ownedProjects = await projectService.getAllProjects();
-        console.log("Proyectos propios:", ownedProjects);
-
         const ownedProjectsArray = Array.isArray(ownedProjects) ? ownedProjects : [];
+        console.log("Proyectos propios:", ownedProjectsArray);
 
         // Adaptar los datos para que coincidan con la estructura esperada
         const formattedProjects = ownedProjectsArray.map((project) => ({

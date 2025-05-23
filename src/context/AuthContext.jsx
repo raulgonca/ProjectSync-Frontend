@@ -35,11 +35,13 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await authService.login(email, password);
-      
-      // Guardar en estado y localStorage
-      setCurrentUser(response.user);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
+      const userData = {
+        token: response.token,
+        username: response.username || response.user?.username || email.split('@')[0],
+        roles: response.roles || response.user?.roles || []
+      };
+      setCurrentUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
       return response;
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión');
@@ -77,7 +79,7 @@ export const AuthProvider = ({ children }) => {
 
   // Verificar si el usuario es administrador
   const isAdmin = () => {
-    return currentUser?.cargo === 'ROLE_ADMIN';
+    return currentUser?.roles?.includes('ROLE_ADMIN');
   };
 
   // Valores que se proporcionarán a través del contexto

@@ -28,13 +28,7 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const response = await authService.login(credentials.email, credentials.password);
-      // Guardar SOLO el objeto user (con token y username)
-      const userData = {
-        token: response.token,
-        username: response.username || response.user?.username || credentials.email.split('@')[0],
-      };
-      localStorage.setItem('user', JSON.stringify(userData));
+      await authService.login(credentials.email, credentials.password);
       navigate('/main');
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');

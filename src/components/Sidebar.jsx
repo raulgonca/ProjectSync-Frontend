@@ -134,7 +134,10 @@ const Sidebar = () => {
               <p className="text-sm font-medium">{user?.username || 'Usuario'}</p>
               <button 
                 className="text-xs text-gray-400 hover:text-white"
-                onClick={() => authService.logout()}
+                onClick={() => {
+                  authService.logout();
+                  window.location.reload();
+                }}
               >
                 Cerrar sesión
               </button>

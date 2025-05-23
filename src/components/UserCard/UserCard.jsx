@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 
 const UserCard = ({ user, onEdit, onDelete }) => {
   const auth = useAuth();
-  const isAdmin = auth && auth.currentUser?.cargo === 'ROLE_ADMIN';
+  const isAdmin = auth && Array.isArray(auth.currentUser?.roles) && auth.currentUser.roles.includes('ROLE_ADMIN');
 
   const getInitials = (username) => {
     if (!username) return 'U';
@@ -89,6 +89,16 @@ const UserCard = ({ user, onEdit, onDelete }) => {
             }`}
           >
             {user?.cargo === 'ROLE_ADMIN' ? 'Administrador' : 'Usuario'}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-600 font-semibold">Rol:</span>
+          <span
+            className={`text-right ${
+              Array.isArray(user?.roles) && user.roles.includes('ROLE_ADMIN') ? 'text-purple-700' : 'text-blue-600'
+            }`}
+          >
+            {Array.isArray(user?.roles) && user.roles.includes('ROLE_ADMIN') ? 'Administrador' : 'Usuario'}
           </span>
         </div>
       </div>

@@ -8,7 +8,7 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
     password: '',
     confirmPassword: '',
     name: '',
-    role: 'user'
+    role: 'ROLE_USER'
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -88,6 +88,9 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
         // Eliminar confirmPassword antes de enviar al servidor
         const userData = { ...formData };
         delete userData.confirmPassword;
+        // Enviar roles como array
+        userData.roles = [userData.role];
+        delete userData.role;
         
         await onSave(userData);
         setFormData(initialFormData);
@@ -209,8 +212,8 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
               onChange={handleChange}
               className={`w-full px-3 py-2 border rounded-md ${errors.role ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
             >
-              <option value="user">Usuario</option>
-              <option value="admin">Administrador</option>
+              <option value="ROLE_USER">Usuario</option>
+              <option value="ROLE_ADMIN">Administrador</option>
             </select>
             {errors.role && <p className="text-red-600 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.role}</p>}
           </div>

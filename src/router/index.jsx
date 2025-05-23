@@ -20,7 +20,14 @@ import ProjectDetail from '../pages/projects/ProjectDetails';
 
 // Función para verificar si el usuario está autenticado
 const isAuthenticated = () => {
-  return localStorage.getItem('user') !== null;
+  const user = localStorage.getItem('user');
+  if (!user) return false;
+  try {
+    const parsed = JSON.parse(user);
+    return !!parsed.token;
+  } catch {
+    return false;
+  }
 };
 
 // Componente para rutas protegidas

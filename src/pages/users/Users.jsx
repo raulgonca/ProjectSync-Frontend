@@ -30,8 +30,8 @@ const Users = () => {
     try {
       setLoading(true);
       const data = await userService.getAllUsers();
-      // Cambia aquí: si la respuesta tiene 'data', úsala, si no, usa array vacío
-      setUsers(Array.isArray(data?.data) ? data.data : []);
+      // Ahora data es un array plano
+      setUsers(Array.isArray(data) ? data : []);
       setError(null);
       toast.success('Usuarios cargados correctamente');
     } catch (err) {
@@ -61,14 +61,14 @@ const Users = () => {
       case 'email':
         return user.email && user.email.toLowerCase().includes(term);
       case 'role':
-        return user.role && user.role.toLowerCase().includes(term);
+        return Array.isArray(user.roles) && user.roles.join(',').toLowerCase().includes(term);
       case 'all':
       default:
         return (
           (user.username && user.username.toLowerCase().includes(term)) ||
           (user.name && user.name.toLowerCase().includes(term)) ||
           (user.email && user.email.toLowerCase().includes(term)) ||
-          (user.role && user.role.toLowerCase().includes(term))
+          (Array.isArray(user.roles) && user.roles.join(',').toLowerCase().includes(term))
         );
     }
   }) : [];
@@ -153,7 +153,7 @@ const Users = () => {
         user.id,
         user.username || '',
         user.email || '',
-        user.cargo || ''
+        Array.isArray(user.roles) ? user.roles.join(', ') : ''
       ]);
       
       // Combinar cabeceras y filas
