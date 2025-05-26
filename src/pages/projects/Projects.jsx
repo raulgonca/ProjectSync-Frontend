@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import ProjectCard from "../../components/projects/ProjectCard";
 import { projectService } from "../../services/api";
 import { Link } from "react-router-dom";
-import { FaPlus, FaSearch } from "react-icons/fa"; // Importar iconos de React Icons
+import { FaPlus, FaSearch } from "react-icons/fa";
+import LoadingSpinner from "../../components/LoadingSpinner"; // Nuevo loader
 
 const Projects = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -98,9 +99,7 @@ const Projects = () => {
 
       {/* Contenido de la lista de proyectos */}
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-        </div>
+        <LoadingSpinner section="projects" text="Cargando proyectos..." />
       ) : error ? (
         <div className="flex justify-center items-center h-64">
           <div className="text-red-500 text-center">

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/api';
+import LoadingSpinner from '../../components/LoadingSpinner'; // Nuevo loader
 
 // Importa aquí tu logo o usa un placeholder
 // import Logo from '../../assets/logo.png';
@@ -179,7 +180,11 @@ const Register = () => {
                 disabled={loading}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
               >
-                {loading ? 'Registrando...' : 'Registrarse'}
+                {loading ? (
+                  <LoadingSpinner section="users" text="Registrando..." />
+                ) : (
+                  'Registrarse'
+                )}
               </button>
             </div>
 

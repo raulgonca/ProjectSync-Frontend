@@ -3,6 +3,7 @@ import { repoService, clientService } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import { FaSave, FaArrowLeft, FaFileUpload } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import LoadingSpinner from '../../components/LoadingSpinner'; // Nuevo loader
 
 const ProjectCreate = () => {
   const [form, setForm] = useState({
@@ -176,8 +177,16 @@ const ProjectCreate = () => {
               disabled={loading}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center justify-center font-semibold text-lg transition"
             >
-              <FaSave className="mr-2" />
-              {loading ? 'Guardando...' : 'Crear proyecto'}
+              {loading ? (
+                <>
+                  <LoadingSpinner section="projects" text="Guardando..." />
+                </>
+              ) : (
+                <>
+                  <FaSave className="mr-2" />
+                  Crear proyecto
+                </>
+              )}
             </button>
           </form>
         </div>

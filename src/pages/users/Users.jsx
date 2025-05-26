@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { userService } from '../../services/api';
 import UserCard from '../../components/UserCard/UserCard';
 import UserModal from '../../components/UserModal/UserModal';
+import LoadingSpinner from '../../components/LoadingSpinner'; // Nuevo loader
 import { FaPlus, FaSearch, FaFilter, FaExclamationTriangle, FaFileExport, FaSync } from 'react-icons/fa';
 import { toast } from 'react-toastify'; // Asegúrate de tener esta dependencia instalada
 
@@ -181,13 +182,12 @@ const Users = () => {
   };
 
   // Renderizar componente de carga
-  if (loading && users.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-        <span className="ml-3 text-lg text-gray-600">Cargando usuarios...</span>
-      </div>
-    );
+  if (loading) {
+    return <LoadingSpinner section="users" text="Cargando usuarios..." />;
+  }
+
+  if (error) {
+    return <div className="bg-red-100 text-red-800 p-4 rounded-md my-5">{error}</div>;
   }
 
   return (

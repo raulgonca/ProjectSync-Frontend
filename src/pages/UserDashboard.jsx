@@ -2,19 +2,27 @@ import { useEffect, useState } from 'react';
 import { FaUser, FaFolderOpen, FaEnvelope, FaUsers, FaArrowRight } from 'react-icons/fa';
 import { projectService } from '../services/api';
 import { Link } from 'react-router-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const UserDashboard = () => {
   const [user, setUser] = useState(null);
   const [ownProjects, setOwnProjects] = useState([]);
   const [collabProjects, setCollabProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
     setUser(userData);
 
     if (userData) {
-      projectService.getUserProjects(userData.id).then(setOwnProjects);
-      projectService.getUserCollaborations(userData.id).then(setCollabProjects);
+      Promise.all([
+        projectService.getUserProjects(userData.id),
+        projectService.getUserCollaborations(userData.id)
+      ]).then(([own, collab]) => {
+        setOwnProjects(own);
+        setCollabProjects(collab);
+        setLoading(false);
+      });
     }
   }, []);
 
@@ -56,7 +64,9 @@ const UserDashboard = () => {
       </div>
       <div className="bg-white rounded-xl shadow p-4 mb-6">
         <h2 className="text-lg font-semibold mb-3 text-purple-700">Mis proyectos propios</h2>
-        {ownProjects.length === 0 ? (
+        {loading ? (
+          <LoadingSpinner section="projects" text="Cargando proyectos..." />
+        ) : ownProjects.length === 0 ? (
           <p className="text-gray-500">No tienes proyectos propios.</p>
         ) : (
           <div className="flex flex-col gap-2">
@@ -82,7 +92,7 @@ const UserDashboard = () => {
                 </div>
                 <Link
                   to={`/main/projects/${p.id}`}
-                  className="mt-2 sm:mt-0 sm:ml-6 inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded font-semibold text-xs transition"
+                  className="mt-2 sm:mt-0 sm:ml-6 inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 hover:bg-purple-300 text-purple-700 hover:text-white rounded font-semibold text-xs transition"
                   title="Ver proyecto"
                 >
                   Ver <FaArrowRight />
@@ -94,7 +104,9 @@ const UserDashboard = () => {
       </div>
       <div className="bg-white rounded-xl shadow p-4">
         <h2 className="text-lg font-semibold mb-3 text-purple-700">Proyectos como colaborador</h2>
-        {collabProjects.length === 0 ? (
+        {loading ? (
+          <LoadingSpinner section="projects" text="Cargando proyectos..." />
+        ) : collabProjects.length === 0 ? (
           <p className="text-gray-500">No colaboras en ningún proyecto.</p>
         ) : (
           <div className="flex flex-col gap-2">
@@ -120,7 +132,7 @@ const UserDashboard = () => {
                 </div>
                 <Link
                   to={`/main/projects/${p.id}`}
-                  className="mt-2 sm:mt-0 sm:ml-6 inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded font-semibold text-xs transition"
+                  className="mt-2 sm:mt-0 sm:ml-6 inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 hover:bg-purple-300 text-purple-700 hover:text-white rounded font-semibold text-xs transition"
                   title="Ver proyecto"
                 >
                   Ver <FaArrowRight />

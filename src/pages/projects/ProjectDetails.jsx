@@ -5,6 +5,7 @@ import { FaArrowLeft, FaUserFriends, FaUserTie, FaDownload, FaEdit, FaSave, FaTi
 import { toast } from 'react-toastify';
 import ClientModal from '../../components/ClientModal';
 import ColaboradoresModal from '../../components/ColaboradoresModal';
+import LoadingSpinner from '../../components/LoadingSpinner'; // Nuevo loader
 
 const ProjectDetails = () => {
   const { id } = useParams();
@@ -102,7 +103,7 @@ const ProjectDetails = () => {
     }
   };
 
-  if (loading) return <div className="p-8">Cargando...</div>;
+  if (loading) return <LoadingSpinner section="projects" text="Cargando proyecto..." />;
   if (error) return <div className="p-8 text-red-600">{error}</div>;
   if (!repo) return null;
 

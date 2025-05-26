@@ -3,6 +3,7 @@ import { clientService } from '../../services/api';
 import ClientCard from '../../components/ClientCard/ClientCard';
 import ClientModal from '../../components/ClientModal/ClientModal';
 import { FaPlus, FaSearch, FaFilter } from 'react-icons/fa';
+import LoadingSpinner from '../../components/LoadingSpinner'; // Nuevo loader
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
@@ -85,7 +86,7 @@ const Clients = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64 text-lg text-gray-600">Cargando clientes...</div>;
+    return <LoadingSpinner section="clients" text="Cargando clientes..." />;
   }
 
   if (error) {
