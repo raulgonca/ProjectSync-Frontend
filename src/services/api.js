@@ -21,7 +21,6 @@ const fetchFromAPI = async (endpoint, options = {}) => {
     // Añadir token a las cabeceras si existe y no es petición pública
     const user = localStorage.getItem('user');
     const token = user ? JSON.parse(user).token : null;
-    // Por defecto, requiere autenticación salvo que options.requiresAuth === false
     const requiresAuth = options.requiresAuth !== false;
     if (token && requiresAuth) {
       defaultOptions.headers['Authorization'] = `Bearer ${token}`;
@@ -65,6 +64,10 @@ const fetchFromAPI = async (endpoint, options = {}) => {
 
     // Si la respuesta no es exitosa, lanzar un error
     if (!response.ok) {
+      // Si es 401, elimina el usuario del localStorage
+      if (response.status === 401) {
+        localStorage.removeItem('user');
+      }
       console.error('Respuesta con error:', response.status, responseText);
       throw new Error(data.message || 'Ha ocurrido un error en la petición');
     }
@@ -89,10 +92,12 @@ export const authService = {
       requiresAuth: false
     });
     if (data.token) {
+      // Asegúrate de guardar el id, username y roles correctamente
       const userData = {
         token: data.token,
-        username: data.username || data.user?.username || email.split('@')[0],
-        roles: data.roles || data.user?.roles || []
+        id: data.user?.id || data.id,
+        username: data.user?.username || data.username || email.split('@')[0],
+        roles: data.user?.roles || data.roles || []
       };
       localStorage.setItem('user', JSON.stringify(userData));
     }
@@ -118,7 +123,7 @@ export const authService = {
 export const userService = {
   // Obtener todos los usuarios
   getAllUsers: async () => {
-    return await fetchFromAPI('/users');
+    return await fetchFromAPI('/user/all');
   },
   // Obtener un usuario por ID
   getUserById: async (id) => {
@@ -139,7 +144,7 @@ export const userService = {
   },
   // Crear nuevo usuario
   createUser: async (userData) => {
-    return await fetchFromAPI('/newusers', { // path correcto según backend
+    return await fetchFromAPI('/user/new', { // path correcto según backend
       method: 'POST',
       body: userData
     });
@@ -209,6 +214,14 @@ export const projectService = {
   // Obtener colaboradores de un proyecto
   getProjectCollaborators: async (projectId) => {
     return await fetchFromAPI(`/repos/${projectId}/colaboradores`);
+  },
+  // Obtener proyectos propios de un usuario
+  getUserProjects: async (userId) => {
+    return await fetchFromAPI(`/user/${userId}/projects`);
+  },
+  // Obtener colaboraciones de un usuario
+  getUserCollaborations: async (userId) => {
+    return await fetchFromAPI(`/user/${userId}/collaborations`);
   }
 }
 

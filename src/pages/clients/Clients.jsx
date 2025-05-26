@@ -12,6 +12,14 @@ const Clients = () => {
   const [filterType, setFilterType] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const user = JSON.parse(localStorage.getItem('user'));
+  const roles = user?.roles || user?.authorities || [];
+  const isAdmin = Array.isArray(roles)
+    ? roles.some(r => r === 'ROLE_ADMIN' || r.authority === 'ROLE_ADMIN')
+    : false;
+
+  // Estado para editar cliente
+  const [editClient, setEditClient] = useState(null);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -71,6 +79,11 @@ const Clients = () => {
     }
   };
 
+  // Función para editar cliente (solo para admin)
+  const handleEditClient = (client) => {
+    if (isAdmin) setEditClient(client);
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-64 text-lg text-gray-600">Cargando clientes...</div>;
   }
@@ -92,7 +105,7 @@ const Clients = () => {
                 placeholder="Buscar cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
@@ -102,12 +115,12 @@ const Clients = () => {
               className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg flex items-center transition-colors"
               title="Mostrar filtros"
             >
-              <FaFilter className={`${showFilters ? 'text-blue-600' : 'text-gray-600'}`} />
+              <FaFilter className={`${showFilters ? 'text-purple-600' : 'text-gray-600'}`} />
             </button>
             
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
             >
               <FaPlus className="mr-2" />
               Nuevo Cliente
@@ -120,25 +133,25 @@ const Clients = () => {
               <div className="flex flex-wrap gap-2">
                 <button 
                   onClick={() => setFilterType('all')} 
-                  className={`px-3 py-1 text-sm rounded-full ${filterType === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  className={`px-3 py-1 text-sm rounded-full ${filterType === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   Todos
                 </button>
                 <button 
                   onClick={() => setFilterType('name')} 
-                  className={`px-3 py-1 text-sm rounded-full ${filterType === 'name' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  className={`px-3 py-1 text-sm rounded-full ${filterType === 'name' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   Nombre
                 </button>
                 <button 
                   onClick={() => setFilterType('cif')} 
-                  className={`px-3 py-1 text-sm rounded-full ${filterType === 'cif' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  className={`px-3 py-1 text-sm rounded-full ${filterType === 'cif' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   CIF
                 </button>
                 <button 
                   onClick={() => setFilterType('email')} 
-                  className={`px-3 py-1 text-sm rounded-full ${filterType === 'email' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  className={`px-3 py-1 text-sm rounded-full ${filterType === 'email' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   Email
                 </button>
@@ -167,17 +180,28 @@ const Clients = () => {
       ) : (
         <div className="space-y-6">
           {filteredClients.map((client) => (
-            <ClientCard key={client.id} client={client} />
+            <ClientCard
+              key={client.id}
+              client={client}
+              onEdit={isAdmin ? handleEditClient : undefined}
+            />
           ))}
         </div>
       )}
       
-      <ClientModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveClient}
-        existingClients={clients}
-      />
+      {/* Modal de edición solo para admin */}
+      {isAdmin && (
+        <ClientModal 
+          isOpen={isModalOpen || !!editClient}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditClient(null);
+          }}
+          onSave={handleSaveClient}
+          existingClients={clients}
+          clientToEdit={editClient}
+        />
+      )}
     </div>
   );
 };

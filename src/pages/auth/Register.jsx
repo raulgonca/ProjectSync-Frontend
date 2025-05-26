@@ -89,10 +89,10 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white rounded-lg shadow-md w-full max-w-4xl flex overflow-hidden">
         {/* Lado izquierdo - Logo y título */}
-        <div className="bg-blue-600 text-white w-2/5 p-8 flex flex-col justify-center items-center">
-          <div className="h-24 w-24 bg-white text-blue-600 flex items-center justify-center text-3xl font-bold rounded-full mb-6">PS</div>
+        <div className="bg-purple-700 text-white w-2/5 p-8 flex flex-col justify-center items-center">
+          <div className="h-24 w-24 bg-white text-purple-700 flex items-center justify-center text-3xl font-bold rounded-full mb-6">PS</div>
           <h1 className="text-3xl font-bold mb-4">ProjectSync</h1>
-          <p className="text-center text-blue-100">Tu plataforma para gestionar proyectos de forma eficiente y colaborativa</p>
+          <p className="text-center text-purple-100">Tu plataforma para gestionar proyectos de forma eficiente y colaborativa</p>
         </div>
 
         {/* Lado derecho - Formulario */}
@@ -177,7 +177,7 @@ const Register = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
               >
                 {loading ? 'Registrando...' : 'Registrarse'}
               </button>
@@ -186,7 +186,7 @@ const Register = () => {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 ¿Ya tienes una cuenta?{' '}
-                <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                <Link to="/login" className="font-medium text-purple-600 hover:text-purple-500">
                   Inicia sesión aquí
                 </Link>
               </p>

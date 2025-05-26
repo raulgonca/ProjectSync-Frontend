@@ -3,9 +3,13 @@ import { useAuth } from '../../context/AuthContext';
 import { FaPen, FaTrashAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
-const UserCard = ({ user, onEdit, onDelete }) => {
+const UserCard = ({ user, onEdit, onDelete, confirmDelete }) => {
   const auth = useAuth();
-  const isAdmin = auth && Array.isArray(auth.currentUser?.roles) && auth.currentUser.roles.includes('ROLE_ADMIN');
+  // Soporta roles como array de strings o array de objetos con "authority"
+  const roles = auth?.currentUser?.roles || auth?.currentUser?.authorities || [];
+  const isAdmin = Array.isArray(roles)
+    ? roles.some(r => r === 'ROLE_ADMIN' || r.authority === 'ROLE_ADMIN')
+    : false;
 
   const getInitials = (username) => {
     if (!username) return 'U';
@@ -51,7 +55,7 @@ const UserCard = ({ user, onEdit, onDelete }) => {
             onClick={() => onEdit && onEdit(user)}
             title="Editar"
           >
-            <FaPen className="text-blue-600 text-xs sm:text-sm" />
+            <FaPen className="text-purple-600 text-xs sm:text-sm" />
           </button>
           {/* Botón Eliminar a la derecha */}
           <button
@@ -85,7 +89,7 @@ const UserCard = ({ user, onEdit, onDelete }) => {
           <span className="text-gray-600 font-semibold">Cargo:</span>
           <span
             className={`text-right ${
-              user?.cargo === 'ROLE_ADMIN' ? 'text-purple-700' : 'text-blue-600'
+              user?.cargo === 'ROLE_ADMIN' ? 'text-purple-700' : 'text-purple-600'
             }`}
           >
             {user?.cargo === 'ROLE_ADMIN' ? 'Administrador' : 'Usuario'}
@@ -95,7 +99,7 @@ const UserCard = ({ user, onEdit, onDelete }) => {
           <span className="text-gray-600 font-semibold">Rol:</span>
           <span
             className={`text-right ${
-              Array.isArray(user?.roles) && user.roles.includes('ROLE_ADMIN') ? 'text-purple-700' : 'text-blue-600'
+              Array.isArray(user?.roles) && user.roles.includes('ROLE_ADMIN') ? 'text-purple-700' : 'text-purple-600'
             }`}
           >
             {Array.isArray(user?.roles) && user.roles.includes('ROLE_ADMIN') ? 'Administrador' : 'Usuario'}

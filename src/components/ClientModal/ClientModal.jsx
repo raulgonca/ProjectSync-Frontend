@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaTimes, FaInfoCircle, FaBuilding, FaIdCard, FaPhone, FaEnvelope, FaGlobe } from 'react-icons/fa';
 
-const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
+const ClientModal = ({ isOpen, onClose, onSave, existingClients, clientToEdit }) => {
   const initialFormData = {
     name: '',
     cif: '',
@@ -13,6 +13,20 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (clientToEdit) {
+      setFormData({
+        name: clientToEdit.name || '',
+        cif: clientToEdit.cif || '',
+        phone: clientToEdit.phone || '',
+        email: clientToEdit.email || '',
+        web: clientToEdit.web || ''
+      });
+    } else {
+      setFormData(initialFormData);
+    }
+  }, [clientToEdit, isOpen]);
 
   if (!isOpen) return null;
 
@@ -35,10 +49,15 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
   const validateForm = () => {
     const newErrors = {};
     
+    // Filtra los clientes excluyendo el que se está editando (si aplica)
+    const otherClients = clientToEdit
+      ? existingClients.filter(c => c.id !== clientToEdit.id)
+      : existingClients;
+
     // Validar nombre (obligatorio)
     if (!formData.name.trim()) {
       newErrors.name = 'El nombre es obligatorio';
-    } else if (existingClients.some(client => 
+    } else if (otherClients.some(client => 
       client.name.toLowerCase() === formData.name.toLowerCase()
     )) {
       newErrors.name = 'Ya existe un cliente con este nombre';
@@ -49,7 +68,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
       newErrors.cif = 'El CIF es obligatorio';
     } else if (!/^[A-Z0-9]{9}$/.test(formData.cif)) {
       newErrors.cif = 'El CIF debe tener 9 caracteres alfanuméricos';
-    } else if (existingClients.some(client => 
+    } else if (otherClients.some(client => 
       client.cif.toLowerCase() === formData.cif.toLowerCase()
     )) {
       newErrors.cif = 'Ya existe un cliente con este CIF';
@@ -67,7 +86,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
       newErrors.email = 'El email es obligatorio';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'El formato del email no es válido';
-    } else if (formData.email && existingClients.some(client => 
+    } else if (formData.email && otherClients.some(client => 
       client.email && client.email.toLowerCase() === formData.email.toLowerCase()
     )) {
       newErrors.email = 'Ya existe un cliente con este email';
@@ -88,7 +107,11 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
     if (validateForm()) {
       setIsSubmitting(true);
       try {
-        await onSave(formData);
+        if (clientToEdit) {
+          await onSave({ ...formData, id: clientToEdit.id });
+        } else {
+          await onSave(formData);
+        }
         setFormData(initialFormData);
         onClose();
       } catch (error) {
@@ -106,19 +129,23 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-400 text-white p-5 border-b border-blue-700">
+        <div className="bg-gradient-to-r from-purple-600 to-purple-400 text-white p-5 border-b border-purple-700">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold flex items-center">
-              <FaBuilding className="mr-2" /> Nuevo Cliente
+              {clientToEdit ? 'Editar Cliente' : 'Nuevo Cliente'}
             </h2>
             <button 
               onClick={onClose}
-              className="text-white hover:text-gray-200 transition-colors bg-blue-700 hover:bg-blue-800 rounded-full p-1"
+              className="text-white hover:text-gray-200 transition-colors bg-purple-700 hover:bg-purple-800 rounded-full p-1"
             >
               <FaTimes />
             </button>
           </div>
-          <p className="text-sm text-blue-100 mt-1">Completa el formulario para añadir un nuevo cliente</p>
+          <p className="text-sm text-purple-100 mt-1">
+            {clientToEdit
+              ? 'Modifica los datos del cliente y guarda los cambios'
+              : 'Completa el formulario para añadir un nuevo cliente'}
+          </p>
         </div>
         
         <form onSubmit={handleSubmit} className="p-5">
@@ -131,7 +158,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
           
           <div className="mb-4">
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-              <FaBuilding className="mr-2 text-blue-600" />
+              <FaBuilding className="mr-2 text-purple-600" />
               Nombre <span className="text-red-500 ml-1">*</span>
             </label>
             <input
@@ -140,7 +167,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
+              className={`w-full px-3 py-2 border rounded-md ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
               placeholder="Nombre de la empresa"
             />
             {errors.name && <p className="text-red-600 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.name}</p>}
@@ -148,7 +175,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
           
           <div className="mb-4">
             <label htmlFor="cif" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-              <FaIdCard className="mr-2 text-blue-600" />
+              <FaIdCard className="mr-2 text-purple-600" />
               CIF <span className="text-red-500 ml-1">*</span>
             </label>
             <input
@@ -157,7 +184,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
               name="cif"
               value={formData.cif}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md ${errors.cif ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
+              className={`w-full px-3 py-2 border rounded-md ${errors.cif ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
               placeholder="B12345678"
             />
             {errors.cif && <p className="text-red-600 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.cif}</p>}
@@ -165,7 +192,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
           
           <div className="mb-4">
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-              <FaPhone className="mr-2 text-blue-600" />
+              <FaPhone className="mr-2 text-purple-600" />
               Teléfono <span className="text-red-500 ml-1">*</span>
             </label>
             <input
@@ -174,7 +201,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
+              className={`w-full px-3 py-2 border rounded-md ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
               placeholder="912345678"
             />
             {errors.phone && <p className="text-red-600 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.phone}</p>}
@@ -182,7 +209,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
           
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-              <FaEnvelope className="mr-2 text-blue-600" />
+              <FaEnvelope className="mr-2 text-purple-600" />
               Email <span className="text-red-500 ml-1">*</span>
             </label>
             <input
@@ -191,7 +218,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
+              className={`w-full px-3 py-2 border rounded-md ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
               placeholder="contacto@empresa.com"
             />
             {errors.email && <p className="text-red-600 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.email}</p>}
@@ -199,7 +226,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
           
           <div className="mb-6">
             <label htmlFor="web" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-              <FaGlobe className="mr-2 text-blue-600" />
+              <FaGlobe className="mr-2 text-purple-600" />
               Sitio Web <span className="text-xs text-gray-500 ml-1">(Opcional)</span>
             </label>
             <input
@@ -208,7 +235,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
               name="web"
               value={formData.web}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md ${errors.web ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
+              className={`w-full px-3 py-2 border rounded-md ${errors.web ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
               placeholder="https://www.empresa.com"
             />
             {errors.web && <p className="text-red-600 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.web}</p>}
@@ -225,7 +252,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients }) => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400 flex items-center"
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:bg-purple-400 flex items-center"
             >
               {isSubmitting ? 'Guardando...' : 'Guardar Cliente'}
             </button>

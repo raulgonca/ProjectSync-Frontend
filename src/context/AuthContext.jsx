@@ -37,8 +37,9 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(email, password);
       const userData = {
         token: response.token,
-        username: response.username || response.user?.username || email.split('@')[0],
-        roles: response.roles || response.user?.roles || []
+        id: response.user?.id || response.id,
+        username: response.user?.username || response.username || email.split('@')[0],
+        roles: response.user?.roles || response.roles || []
       };
       setCurrentUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
@@ -72,14 +73,14 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/login';
   };
 
-  // Verificar si el usuario está autenticado
+  // Verificar si el usuario está autenticado (debe tener token no vacío)
   const isAuthenticated = () => {
-    return currentUser !== null;
+    return !!(currentUser && typeof currentUser.token === 'string' && currentUser.token.length > 0);
   };
 
   // Verificar si el usuario es administrador
   const isAdmin = () => {
-    return currentUser?.roles?.includes('ROLE_ADMIN');
+    return Array.isArray(currentUser?.roles) && currentUser.roles.includes('ROLE_ADMIN');
   };
 
   // Valores que se proporcionarán a través del contexto

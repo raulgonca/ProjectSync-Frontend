@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaTimes, FaInfoCircle, FaUser, FaEnvelope, FaLock, FaIdCard, FaUserTag } from 'react-icons/fa';
 
-const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
+const UserModal = ({ isOpen, onClose, onSave, existingUsers = [], userToEdit }) => {
   const initialFormData = {
     username: '',
     email: '',
@@ -15,7 +15,75 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (userToEdit) {
+      setFormData({
+        username: userToEdit.username || '',
+        email: userToEdit.email || '',
+        password: '',
+        confirmPassword: '',
+        name: userToEdit.name || '',
+        role: Array.isArray(userToEdit.roles) ? userToEdit.roles[0] : 'ROLE_USER'
+      });
+    } else {
+      setFormData(initialFormData);
+    }
+  }, [userToEdit, isOpen]);
+
   if (!isOpen) return null;
+
+  const validateForm = () => {
+    const newErrors = {};
+    const otherUsers = userToEdit
+      ? existingUsers.filter(u => u.id !== userToEdit.id)
+      : existingUsers;
+
+    // Validar nombre de usuario (obligatorio)
+    if (!formData.username.trim()) {
+      newErrors.username = 'El nombre de usuario es obligatorio';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'El nombre de usuario debe tener al menos 3 caracteres';
+    } else if (otherUsers.some(user => 
+      user.username.toLowerCase() === formData.username.toLowerCase()
+    )) {
+      newErrors.username = 'Este nombre de usuario ya está en uso';
+    }
+
+    // Validar email (obligatorio y formato)
+    if (!formData.email.trim()) {
+      newErrors.email = 'El email es obligatorio';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'El formato del email no es válido';
+    } else if (otherUsers.some(user => 
+      user.email.toLowerCase() === formData.email.toLowerCase()
+    )) {
+      newErrors.email = 'Este email ya está en uso';
+    }
+
+    // Validar contraseña (obligatorio y seguridad)
+    if (!userToEdit) {
+      if (!formData.password) {
+        newErrors.password = 'La contraseña es obligatoria';
+      } else if (formData.password.length < 6) {
+        newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+      }
+    } else if (formData.password && formData.password.length < 6) {
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+
+    // Validar confirmación de contraseña
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Las contraseñas no coinciden';
+    }
+
+    // Validar rol (obligatorio)
+    if (!formData.role) {
+      newErrors.role = 'El rol es obligatorio';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,70 +101,25 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    // Validar nombre de usuario (obligatorio)
-    if (!formData.username.trim()) {
-      newErrors.username = 'El nombre de usuario es obligatorio';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'El nombre de usuario debe tener al menos 3 caracteres';
-    } else if (existingUsers.some(user => 
-      user.username.toLowerCase() === formData.username.toLowerCase()
-    )) {
-      newErrors.username = 'Este nombre de usuario ya está en uso';
-    }
-    
-    // Validar email (obligatorio y formato)
-    if (!formData.email.trim()) {
-      newErrors.email = 'El email es obligatorio';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'El formato del email no es válido';
-    } else if (existingUsers.some(user => 
-      user.email.toLowerCase() === formData.email.toLowerCase()
-    )) {
-      newErrors.email = 'Este email ya está en uso';
-    }
-    
-    // Validar contraseña (obligatorio y seguridad)
-    if (!formData.password) {
-      newErrors.password = 'La contraseña es obligatoria';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
-    }
-    
-    // Validar confirmación de contraseña
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Las contraseñas no coinciden';
-    }
-    
-    // Validar rol (obligatorio)
-    if (!formData.role) {
-      newErrors.role = 'El rol es obligatorio';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (validateForm()) {
       setIsSubmitting(true);
       try {
-        // Eliminar confirmPassword antes de enviar al servidor
         const userData = { ...formData };
         delete userData.confirmPassword;
-        // Enviar roles como array
         userData.roles = [userData.role];
         delete userData.role;
-        
-        await onSave(userData);
+        if (userToEdit) {
+          // Si no se cambia la contraseña, no la envíes
+          if (!formData.password) delete userData.password;
+          await onSave({ ...userData, id: userToEdit.id });
+        } else {
+          await onSave(userData);
+        }
         setFormData(initialFormData);
         onClose();
       } catch (error) {
-        console.error('Error al guardar el usuario:', error);
         setErrors({
           submit: 'Ha ocurrido un error al guardar el usuario. Por favor, inténtalo de nuevo.'
         });
@@ -112,7 +135,7 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
         <div className="bg-gradient-to-r from-purple-600 to-purple-400 text-white p-5 border-b border-purple-700">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold flex items-center">
-              <FaUser className="mr-2" /> Nuevo Usuario
+              <FaUser className="mr-2" /> {userToEdit ? 'Editar Usuario' : 'Nuevo Usuario'}
             </h2>
             <button 
               onClick={onClose}
@@ -121,7 +144,7 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
               <FaTimes />
             </button>
           </div>
-          <p className="text-sm text-purple-100 mt-1">Completa el formulario para añadir un nuevo usuario</p>
+          <p className="text-sm text-purple-100 mt-1">{userToEdit ? 'Modifica los datos del usuario' : 'Completa el formulario para añadir un nuevo usuario'}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="p-5">
@@ -169,7 +192,7 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
           <div className="mb-4">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
               <FaLock className="mr-2 text-purple-600" />
-              Contraseña <span className="text-red-500 ml-1">*</span>
+              Contraseña {userToEdit ? '(Dejar en blanco si no se desea cambiar)' : <span className="text-red-500 ml-1">*</span>}
             </label>
             <input
               type="password"
@@ -186,7 +209,7 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [] }) => {
           <div className="mb-4">
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
               <FaLock className="mr-2 text-purple-600" />
-              Confirmar contraseña <span className="text-red-500 ml-1">*</span>
+              Confirmar contraseña {userToEdit ? '' : <span className="text-red-500 ml-1">*</span>}
             </label>
             <input
               type="password"

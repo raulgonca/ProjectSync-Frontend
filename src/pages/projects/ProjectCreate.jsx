@@ -71,7 +71,7 @@ const ProjectCreate = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-8">
+    <div className="min-h-screen flex items-center justify-center py-8 bg-background">
       <div className="w-full max-w-2xl mx-auto">
         <button
           onClick={() => navigate('/main/projects')}
@@ -79,7 +79,7 @@ const ProjectCreate = () => {
         >
           <FaArrowLeft className="mr-2" /> Volver a proyectos
         </button>
-        <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-8">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-4 md:p-8">
           <h1 className="text-3xl font-bold mb-6 text-purple-700 text-center">Crear nuevo proyecto</h1>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

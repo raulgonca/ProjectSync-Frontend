@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { clientService, repoService } from '../../services/api';
-import { FaArrowLeft, FaUserFriends, FaUserTie, FaDownload } from 'react-icons/fa';
+import { FaArrowLeft, FaUserFriends, FaUserTie, FaDownload, FaEdit, FaSave, FaTimes, FaFileUpload } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-// Importa los componentes modales
 import ClientModal from '../../components/ClientModal';
 import ColaboradoresModal from '../../components/ColaboradoresModal';
 
@@ -17,6 +16,7 @@ const ProjectDetails = () => {
   const [showClientModal, setShowClientModal] = useState(false);
   const [showColabModal, setShowColabModal] = useState(false);
 
+  // Edición
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState(null);
   const [fileInput, setFileInput] = useState(null);
@@ -27,24 +27,23 @@ const ProjectDetails = () => {
       try {
         setLoading(true);
         const data = await repoService.getRepoById(id);
-        console.log('Respuesta del backend (repo):', data); // <-- Añadido para depuración
         setRepo(data);
-        setEditData(data); // Para edición
+        setEditData(data);
         setError(null);
       } catch (err) {
-        setError('No se pudo cargar el repositorio.', err);
+        setError('No se pudo cargar el repositorio.');
       } finally {
         setLoading(false);
       }
     };
     fetchRepo();
-    // Cargar clientes solo si el modal se va a usar
     clientService.getAllClients().then(setClients);
   }, [id]);
 
   const handleEdit = () => {
     setEditData(repo);
     setEditMode(true);
+    setFileInput(null);
   };
 
   const handleCancel = () => {
@@ -69,20 +68,18 @@ const ProjectDetails = () => {
         description: editData.description,
         fechaInicio: editData.fechaInicio,
         fechaFin: editData.fechaFin,
-        fileName: editData.fileName,
+        client: editData.client?.id || '',
       };
-      // Si hay fichero nuevo, usa FormData
       if (fileInput) {
         const formData = new FormData();
         Object.entries(payload).forEach(([key, value]) => formData.append(key, value));
         formData.append('file', fileInput);
-        await repoService.updateRepoWithFile(id, formData);
+        await repoService.updateRepo(id, formData);
       } else {
         await repoService.updateRepo(id, payload);
       }
       toast.success('Proyecto actualizado');
       setEditMode(false);
-      // Recargar datos
       const data = await repoService.getRepoById(id);
       setRepo(data);
       setEditData(data);
@@ -91,13 +88,12 @@ const ProjectDetails = () => {
     }
   };
 
-  // Función para asignar cliente al repo
+  // Asignar cliente
   const handleAssignClient = async (client) => {
     try {
       await repoService.updateRepo(repo.id, { client: client.id });
       toast.success('Cliente asignado correctamente');
       setShowClientModal(false);
-      // Refrescar datos del repo
       const data = await repoService.getRepoById(id);
       setRepo(data);
       setEditData(data);
@@ -119,112 +115,210 @@ const ProjectDetails = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Columna izquierda: Datos del proyecto */}
           <div className="bg-white rounded-xl shadow p-6 flex flex-col justify-center">
-            <h1 className="text-3xl font-bold mb-4 text-purple-700 text-center">{repo.projectname}</h1>
-            <p className="mb-4 text-gray-700 text-center">{repo.description}</p>
-            <div className="mb-3 flex justify-between">
-              <strong>Fecha inicio:</strong>
-              <span>{repo.fechaInicio}</span>
-            </div>
-            <div className="mb-3 flex justify-between">
-              <strong>Fecha fin:</strong>
-              <span>{repo.fechaFin || 'No especificada'}</span>
-            </div>
-            <div className="mb-3 flex justify-between items-center">
-              <strong>Archivo:</strong>
-              {repo.fileName ? (
-                <span className="flex items-center gap-2">
-                  <span className="text-gray-700">{repo.fileName}</span>
-                  <a
-                    href={`${import.meta.env.VITE_URL_API}/api/repo/${repo.id}/download`}
-                    className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Descargar archivo"
-                  >
-                    <FaDownload className="text-lg" />
-                  </a>
-                </span>
-              ) : (
-                <span className="text-gray-500">Sin archivo</span>
-              )}
-            </div>
-            {repo.client && (
-              <div className="mb-3 flex justify-between">
-                <strong>Cliente:</strong>
-                <span>{repo.client.name}</span>
-              </div>
-            )}
-            <div className="mb-3 flex justify-between">
-              <strong>Propietario:</strong>
-              <span>{repo.owner?.username}</span>
-            </div>
-          </div>
-
-          {/* Columna derecha: Cliente y Colaboradores */}
-          <div className="flex flex-col gap-8 justify-center">
-            {/* Sección Cliente */}
-            <div className="bg-gray-50 rounded-xl shadow p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold flex items-center">
-                  <FaUserTie className="mr-2" /> Cliente asignado
-                </h2>
-                <button
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-                  onClick={() => setShowClientModal(true)}
-                >
-                  Gestionar Cliente
-                </button>
-              </div>
-              {repo.client ? (
-                <div>
-                  <span className="font-medium">{repo.client.name}</span>
+            {editMode ? (
+              <>
+                <input
+                  type="text"
+                  name="projectname"
+                  value={editData.projectname}
+                  onChange={handleChange}
+                  className="text-3xl font-bold mb-4 text-purple-700 text-center border-b border-purple-200"
+                />
+                <textarea
+                  name="description"
+                  value={editData.description || ''}
+                  onChange={handleChange}
+                  className="mb-4 text-gray-700 text-center border rounded p-2"
+                  placeholder="Descripción"
+                />
+                <div className="mb-3 flex justify-between">
+                  <strong>Fecha inicio:</strong>
+                  <input
+                    type="date"
+                    name="fechaInicio"
+                    value={editData.fechaInicio}
+                    onChange={handleChange}
+                    className="border rounded px-2"
+                  />
                 </div>
-              ) : (
-                <span className="text-gray-500">Sin cliente asignado</span>
-              )}
-            </div>
-
-            {/* Sección Colaboradores */}
-            <div className="bg-gray-50 rounded-xl shadow p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold flex items-center">
-                  <FaUserFriends className="mr-2" /> Colaboradores
-                </h2>
-                <button
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded"
-                  onClick={() => setShowColabModal(true)}
-                >
-                  Gestionar Colaboradores
-                </button>
-              </div>
-              <ul className="list-disc ml-6">
-                {repo.colaboradores && repo.colaboradores.length > 0 ? (
-                  repo.colaboradores.map(colab => (
-                    <li key={colab.id}>{colab.username}</li>
-                  ))
-                ) : (
-                  <li className="text-gray-500">No hay colaboradores</li>
+                <div className="mb-3 flex justify-between">
+                  <strong>Fecha fin:</strong>
+                  <input
+                    type="date"
+                    name="fechaFin"
+                    value={editData.fechaFin || ''}
+                    onChange={handleChange}
+                    className="border rounded px-2"
+                  />
+                </div>
+                <div className="mb-3 flex justify-between items-center">
+                  <strong>Archivo:</strong>
+                  <div className="flex items-center gap-2">
+                    {repo.fileName && (
+                      <a
+                        href={`${import.meta.env.VITE_URL_API}/api/repo/${repo.id}/download`}
+                        className="inline-flex items-center px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Descargar archivo"
+                      >
+                        <FaDownload className="text-lg" />
+                      </a>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer bg-purple-100 px-2 py-1 rounded hover:bg-purple-200">
+                      <FaFileUpload />
+                      <span className="text-sm">Subir/Reemplazar</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                    {fileInput && <span className="text-xs text-gray-700">{fileInput.name}</span>}
+                  </div>
+                </div>
+                <div className="mb-3 flex justify-between">
+                  <strong>Cliente:</strong>
+                  <select
+                    name="client"
+                    value={editData.client?.id || ''}
+                    onChange={e => {
+                      const clientId = e.target.value;
+                      const clientObj = clients.find(c => c.id === parseInt(clientId));
+                      setEditData(prev => ({ ...prev, client: clientObj || null }));
+                    }}
+                    className="border rounded px-2"
+                  >
+                    <option value="">Sin cliente</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>{client.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-3 flex justify-between">
+                  <strong>Propietario:</strong>
+                  <span>{repo.owner?.username}</span>
+                </div>
+                <div className="flex gap-4 mt-4">
+                  <button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center justify-center gap-2"
+                    onClick={handleSave}
+                  >
+                    <FaSave /> Guardar
+                  </button>
+                  <button
+                    className="flex-1 bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded flex items-center justify-center gap-2"
+                    onClick={handleCancel}
+                  >
+                    <FaTimes /> Cancelar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold mb-4 text-purple-700 text-center">{repo.projectname}</h1>
+                <p className="mb-4 text-gray-700 text-center">{repo.description}</p>
+                <div className="mb-3 flex justify-between">
+                  <strong>Fecha inicio:</strong>
+                  <span>{repo.fechaInicio}</span>
+                </div>
+                <div className="mb-3 flex justify-between">
+                  <strong>Fecha fin:</strong>
+                  <span>{repo.fechaFin || 'No especificada'}</span>
+                </div>
+                <div className="mb-3 flex justify-between items-center">
+                  <strong>Archivo:</strong>
+                  {repo.fileName ? (
+                    <span className="flex items-center gap-2">
+                      <span className="text-gray-700">{repo.fileName}</span>
+                      <a
+                        href={`${import.meta.env.VITE_URL_API}/api/repo/${repo.id}/download`}
+                        className="inline-flex items-center px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Descargar archivo"
+                      >
+                        <FaDownload className="text-lg" />
+                      </a>
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">Sin archivo</span>
+                  )}
+                </div>
+                {repo.client && (
+                  <div className="mb-3 flex justify-between">
+                    <strong>Cliente:</strong>
+                    <span>{repo.client.name}</span>
+                  </div>
                 )}
+                <div className="mb-3 flex justify-between">
+                  <strong>Propietario:</strong>
+                  <span>{repo.owner?.username}</span>
+                </div>
+                <button
+                  className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center gap-2 mx-auto"
+                  onClick={handleEdit}
+                >
+                  <FaEdit /> Editar
+                </button>
+              </>
+            )}
+          </div>
+          {/* Columna derecha: Colaboradores y acciones */}
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col">
+            <h2 className="text-2xl font-semibold mb-4 text-purple-700">Colaboradores</h2>
+            <div className="flex-1 overflow-auto">
+              {/* Lista de colaboradores */}
+              <ul className="space-y-3">
+                {repo.colaboradores?.map(colaborador => (
+                  <li key={colaborador.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={colaborador.avatar || '/default-avatar.png'}
+                        alt={colaborador.username}
+                        className="w-10 h-10 rounded-full"
+                      />
+                      <div>
+                        <span className="block text-sm font-medium text-gray-800">{colaborador.username}</span>
+                        <span className="block text-xs text-gray-500">{colaborador.email}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => setShowColabModal(true)}
+                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm flex items-center gap-1"
+                      >
+                        <FaUserFriends className="text-xs" /> Ver perfil
+                      </button>
+                    </div>
+                  </li>
+                ))}
               </ul>
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={() => setShowColabModal(true)}
+                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center justify-center gap-2"
+              >
+                <FaUserFriends /> Agregar colaborador
+              </button>
             </div>
           </div>
         </div>
-
-        {/* Modales componentizados */}
-        <ClientModal
-          open={showClientModal}
-          onClose={() => setShowClientModal(false)}
-          onAssign={handleAssignClient}
-          assignedClientId={repo.client?.id}
-          clients={clients}
-        />
-        <ColaboradoresModal
-          open={showColabModal}
-          onClose={() => setShowColabModal(false)}
-          repoId={repo.id} // <-- asegúrate de pasar el id correcto
-          ownerId={repo.owner?.id}
-        />
       </div>
+      {/* Modal de cliente */}
+      <ClientModal
+        isOpen={showClientModal}
+        onClose={() => setShowClientModal(false)}
+        onAssign={handleAssignClient}
+        currentClient={repo.client}
+      />
+      {/* Modal de colaboradores */}
+      <ColaboradoresModal
+        isOpen={showColabModal}
+        onClose={() => setShowColabModal(false)}
+        repoId={repo.id}
+      />
     </div>
   );
 };

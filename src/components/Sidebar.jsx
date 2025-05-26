@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { authService } from '../services/api';
 // Importa los iconos de react-icons
-import { FaTachometerAlt, FaFolderOpen, FaUsers, FaBuilding, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaTachometerAlt, FaFolderOpen, FaUsers, FaBuilding, FaChevronLeft, FaChevronRight, FaUser } from 'react-icons/fa';
 
 // Importa aquí tu logo o usa un placeholder
 // import Logo from '../assets/logo.png';
@@ -47,13 +47,19 @@ const Sidebar = () => {
     return location.pathname.startsWith(path);
   };
 
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const roles = userData?.roles || userData?.authorities || [];
+  const isAdmin = Array.isArray(roles)
+    ? roles.some(r => r === 'ROLE_ADMIN' || r.authority === 'ROLE_ADMIN')
+    : false;
+
   // Elementos del menú
   const menuItems = [
-    { 
-      path: '/main', 
-      name: 'Dashboard', 
+    ...(isAdmin ? [{
+      path: '/main/dashboard',
+      name: 'Dashboard',
       icon: <FaTachometerAlt />
-    },
+    }] : []),
     { 
       path: '/main/projects', 
       name: 'Proyectos', 
@@ -69,10 +75,15 @@ const Sidebar = () => {
       name: 'Clientes', 
       icon: <FaBuilding />
     },
+    {
+      path: '/main/user-dashboard',
+      name: 'Mi Panel',
+      icon: <FaUser />
+    }
   ];
 
   return (
-    <div className={`sidebar bg-gray-800 text-white h-screen ${collapsed ? 'w-20' : 'w-64'} transition-all duration-300 flex flex-col relative ${isMobile ? 'absolute z-10' : ''}`}>
+    <div className={`sidebar bg-purple-800 text-white h-screen ${collapsed ? 'w-20' : 'w-64'} transition-all duration-300 flex flex-col relative ${isMobile ? 'absolute z-10' : ''}`}>
       {/* Logo y título */}
       <div className="p-4 flex items-center justify-center">
         {!collapsed && (
@@ -89,17 +100,17 @@ const Sidebar = () => {
         )}
       </div>
       
-      {/* Botón de colapsar (ahora posicionado absolutamente) */}
+      {/* Botón de colapsar */}
       <button 
         onClick={() => setCollapsed(!collapsed)}
-        className={`absolute top-4 ${collapsed ? 'right-[-12px]' : 'right-4'} bg-gray-700 hover:bg-gray-600 text-white p-1 rounded-full w-6 h-6 flex items-center justify-center shadow-md transition-all duration-300 z-20`}
+        className={`absolute top-4 ${collapsed ? 'right-[-12px]' : 'right-4'} bg-purple-700 hover:bg-purple-600 text-white p-1 rounded-full w-6 h-6 flex items-center justify-center shadow-md transition-all duration-300 z-20`}
         aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
       >
         {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
       </button>
 
       {/* Separador */}
-      <div className="border-b border-gray-700 my-2"></div>
+      <div className="border-b border-purple-700 my-2"></div>
 
       {/* Elementos del menú */}
       <nav className="flex-1 overflow-y-auto">
@@ -110,8 +121,8 @@ const Sidebar = () => {
                 to={item.path}
                 className={`flex items-center px-4 py-3 ${
                   isActive(item.path) 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-300 hover:bg-gray-700'
+                    ? 'bg-purple-600 text-white' 
+                    : 'text-gray-200 hover:bg-purple-700'
                 } rounded-lg mx-2 transition-colors`}
                 onClick={() => isMobile && setCollapsed(true)}
               >
@@ -124,16 +135,16 @@ const Sidebar = () => {
       </nav>
 
       {/* Perfil de usuario en la parte inferior */}
-      <div className="border-t border-gray-700 p-4">
+      <div className="border-t border-purple-700 p-4">
         <div className={`flex ${collapsed ? 'justify-center' : 'items-center'}`}>
-          <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-sm">
+          <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-sm">
             {user?.username?.charAt(0) || 'U'}
           </div>
           {!collapsed && (
             <div className="ml-3">
               <p className="text-sm font-medium">{user?.username || 'Usuario'}</p>
               <button 
-                className="text-xs text-gray-400 hover:text-white"
+                className="text-xs text-gray-300 hover:text-white"
                 onClick={() => {
                   authService.logout();
                   window.location.reload();

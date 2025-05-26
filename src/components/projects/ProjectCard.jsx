@@ -14,7 +14,7 @@ const ProjectCard = ({ project }) => {
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'in-progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-purple-100 text-purple-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       default:
@@ -80,7 +80,7 @@ const ProjectCard = ({ project }) => {
         <div className="flex justify-end">
           <Link 
             to={`/main/projects/${project.id}`} 
-            className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            className="inline-flex items-center px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
           >
             Ver detalles
             <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

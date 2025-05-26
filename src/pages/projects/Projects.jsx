@@ -79,7 +79,7 @@ const Projects = () => {
               placeholder="Buscar proyecto..."
               value={searchTerm}
               onChange={handleSearch}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <FaSearch className="text-gray-400" />
@@ -88,7 +88,7 @@ const Projects = () => {
           
           <Link 
             to="/main/projects/new" 
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center whitespace-nowrap"
+            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center whitespace-nowrap"
           >
             <FaPlus className="mr-2" />
             Crear Proyecto
@@ -99,7 +99,7 @@ const Projects = () => {
       {/* Contenido de la lista de proyectos */}
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
         </div>
       ) : error ? (
         <div className="flex justify-center items-center h-64">

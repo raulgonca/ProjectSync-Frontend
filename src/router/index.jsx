@@ -10,13 +10,14 @@ import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 
 // Páginas principales
-import Dashboard from '../pages/Dashboard';
 import Projects from '../pages/projects/Projects';
 import Users from '../pages/users/Users';
 import Clients from '../pages/clients/Clients';
-import NotFound from '../pages/NotFound';
 import ProjectCreate from '../pages/projects/ProjectCreate';
 import ProjectDetail from '../pages/projects/ProjectDetails'; 
+import UserDashboard from '../pages/UserDashboard';
+import Dashboard from '../pages/Dashboard';
+import ErrorPage from '../pages/ErrorPage';
 
 // Función para verificar si el usuario está autenticado
 const isAuthenticated = () => {
@@ -28,6 +29,15 @@ const isAuthenticated = () => {
   } catch {
     return false;
   }
+};
+
+// Función para comprobar si es admin
+const isAdmin = () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  const roles = user?.roles || user?.authorities || [];
+  return Array.isArray(roles)
+    ? roles.some(r => r === 'ROLE_ADMIN' || r.authority === 'ROLE_ADMIN')
+    : false;
 };
 
 // Componente para rutas protegidas
@@ -46,12 +56,19 @@ const AuthRoute = ({ children }) => {
   return children;
 };
 
+// Página principal dinámica según rol
+const MainIndex = () => {
+  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+  if (isAdmin()) return <Dashboard />;
+  return <UserDashboard />;
+};
+
 // Configuración del enrutador
 const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout />,
-    errorElement: <NotFound />,
+    errorElement: <ErrorPage />,
     children: [
       {
         path: '/',
@@ -92,7 +109,7 @@ const router = createBrowserRouter([
         children: [
           {
             path: '',
-            element: <Dashboard />
+            element: <MainIndex />
           },
           {
             path: 'projects',
@@ -113,6 +130,14 @@ const router = createBrowserRouter([
           {
             path: 'clients',
             element: <Clients />
+          },
+          {
+            path: 'user-dashboard',
+            element: <UserDashboard />
+          },
+          {
+            path: 'dashboard',
+            element: isAdmin() ? <Dashboard /> : <div className="p-6 text-center text-red-600 font-semibold">No tienes permisos para ver este panel.</div>,
           }
         ]
       }
