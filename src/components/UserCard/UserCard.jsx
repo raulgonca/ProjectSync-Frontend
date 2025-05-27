@@ -45,6 +45,13 @@ const UserCard = ({ user, onEdit, onDelete, confirmDelete }) => {
     }
   };
 
+  // Función para manejar el clic en el botón de editar
+  const handleEdit = () => {
+    if (onEdit && user) {
+      onEdit(user); // Debe pasar el usuario a editar
+    }
+  };
+
   return (
     <div className="bg-white/40 backdrop-blur-md rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-white/20 p-4 sm:p-6 relative w-full max-w-[280px] sm:max-w-[300px] overflow-hidden">
       {isAdmin && (
@@ -52,7 +59,7 @@ const UserCard = ({ user, onEdit, onDelete, confirmDelete }) => {
           {/* Botón Editar a la izquierda */}
           <button
             className="absolute top-2 sm:top-3 left-2 sm:left-3 w-6 h-6 sm:w-7 sm:h-7 bg-white/70 hover:bg-white rounded-full flex items-center justify-center shadow transition z-10"
-            onClick={() => onEdit && onEdit(user)}
+            onClick={handleEdit}
             title="Editar"
           >
             <FaPen className="text-purple-600 text-xs sm:text-sm" />

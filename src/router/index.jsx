@@ -18,6 +18,7 @@ import ProjectDetail from '../pages/projects/ProjectDetails';
 import UserDashboard from '../pages/UserDashboard';
 import Dashboard from '../pages/Dashboard';
 import ErrorPage from '../pages/ErrorPage';
+import Profile from '../pages/Profile';
 
 // Función para verificar si el usuario está autenticado
 const isAuthenticated = () => {
@@ -138,6 +139,10 @@ const router = createBrowserRouter([
           {
             path: 'dashboard',
             element: isAdmin() ? <Dashboard /> : <div className="p-6 text-center text-red-600 font-semibold">No tienes permisos para ver este panel.</div>,
+          },
+          {
+            path: 'profile',
+            element: <Profile />
           }
         ]
       }

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { clientService, repoService } from '../../services/api';
-import { FaArrowLeft, FaUserFriends, FaUserTie, FaDownload, FaEdit, FaSave, FaTimes, FaFileUpload } from 'react-icons/fa';
+import { FaArrowLeft, FaUserFriends, FaUserTie, FaDownload, FaEdit, FaSave, FaTimes, FaFileUpload, FaFolderOpen } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import ClientModal from '../../components/ClientModal';
 import ColaboradoresModal from '../../components/ColaboradoresModal';
-import LoadingSpinner from '../../components/LoadingSpinner'; // Nuevo loader
+import LoadingSpinner from '../../components/LoadingSpinner'; 
 
 const ProjectDetails = () => {
   const { id } = useParams();
@@ -22,6 +22,8 @@ const ProjectDetails = () => {
   const [editData, setEditData] = useState(null);
   const [fileInput, setFileInput] = useState(null);
   const [clients, setClients] = useState([]);
+  // Colaboradores
+  const [refreshColabs, setRefreshColabs] = useState(false);
 
   useEffect(() => {
     const fetchRepo = async () => {
@@ -39,7 +41,7 @@ const ProjectDetails = () => {
     };
     fetchRepo();
     clientService.getAllClients().then(setClients);
-  }, [id]);
+  }, [id, refreshColabs]); // Añadido refreshColabs para refrescar tras añadir
 
   const handleEdit = () => {
     setEditData(repo);
@@ -60,6 +62,11 @@ const ProjectDetails = () => {
 
   const handleFileChange = (e) => {
     setFileInput(e.target.files[0]);
+    // Actualiza editData para mostrar el nombre del archivo seleccionado
+    setEditData(prev => ({
+      ...prev,
+      fileName: e.target.files[0]?.name || prev.fileName
+    }));
   };
 
   const handleSave = async () => {
@@ -89,10 +96,10 @@ const ProjectDetails = () => {
     }
   };
 
-  // Asignar cliente
-  const handleAssignClient = async (client) => {
+  // Cambia handleAssignClient para usar onSave del modal
+  const handleSaveClient = async (clientData) => {
     try {
-      await repoService.updateRepo(repo.id, { client: client.id });
+      await repoService.updateRepo(repo.id, { client: clientData.id });
       toast.success('Cliente asignado correctamente');
       setShowClientModal(false);
       const data = await repoService.getRepoById(id);
@@ -103,19 +110,36 @@ const ProjectDetails = () => {
     }
   };
 
+  // Añadir colaborador (llamado desde el modal)
+  const handleAddColaborador = async (userId) => {
+    try {
+      await repoService.addColaborador(repo.id, userId);
+      toast.success('Colaborador añadido');
+      setShowColabModal(false);
+      setRefreshColabs(prev => !prev); // Refresca la lista
+    } catch (err) {
+      toast.error('Error al añadir colaborador');
+    }
+  };
+
   if (loading) return <LoadingSpinner section="projects" text="Cargando proyecto..." />;
   if (error) return <div className="p-8 text-red-600">{error}</div>;
   if (!repo) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-8">
-      <div className="w-full max-w-5xl mx-auto bg-white border border-gray-200 rounded-2xl shadow-2xl p-8">
-        <Link to="/main/projects" className="flex items-center text-purple-600 mb-8 hover:underline">
-          <FaArrowLeft className="mr-2" /> Volver a proyectos
-        </Link>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          {/* Columna izquierda: Datos del proyecto */}
-          <div className="bg-white rounded-xl shadow p-6 flex flex-col justify-center">
+    <div className="min-h-screen flex-1 bg-white">
+      {/* No sidebar aquí, lo pone la app */}
+      <main className="w-full max-w-7xl mx-auto p-4 md:p-10">
+        {/* Botón volver */}
+        <div className="mb-6">
+          <Link to="/main/projects" className="flex items-center text-purple-600 hover:underline text-lg font-medium">
+            <FaArrowLeft className="mr-2" /> Volver a proyectos
+          </Link>
+        </div>
+        {/* Grid superior */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Detalles del proyecto */}
+          <section className="bg-white rounded-xl border-2 border-purple-200 p-8 flex flex-col justify-between min-h-[260px]">
             {editMode ? (
               <>
                 <input
@@ -155,7 +179,7 @@ const ProjectDetails = () => {
                 <div className="mb-3 flex justify-between items-center">
                   <strong>Archivo:</strong>
                   <div className="flex items-center gap-2">
-                    {repo.fileName && (
+                    {repo.fileName && !fileInput && (
                       <a
                         href={`${import.meta.env.VITE_URL_API}/api/repo/${repo.id}/download`}
                         className="inline-flex items-center px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition"
@@ -164,6 +188,7 @@ const ProjectDetails = () => {
                         title="Descargar archivo"
                       >
                         <FaDownload className="text-lg" />
+                        <span className="ml-2">{repo.fileName}</span>
                       </a>
                     )}
                     <label className="flex items-center gap-2 cursor-pointer bg-purple-100 px-2 py-1 rounded hover:bg-purple-200">
@@ -175,7 +200,9 @@ const ProjectDetails = () => {
                         onChange={handleFileChange}
                       />
                     </label>
-                    {fileInput && <span className="text-xs text-gray-700">{fileInput.name}</span>}
+                    {fileInput && (
+                      <span className="text-xs text-gray-700">{fileInput.name}</span>
+                    )}
                   </div>
                 </div>
                 <div className="mb-3 flex justify-between">
@@ -217,17 +244,19 @@ const ProjectDetails = () => {
               </>
             ) : (
               <>
-                <h1 className="text-3xl font-bold mb-4 text-purple-700 text-center">{repo.projectname}</h1>
-                <p className="mb-4 text-gray-700 text-center">{repo.description}</p>
-                <div className="mb-3 flex justify-between">
-                  <strong>Fecha inicio:</strong>
-                  <span>{repo.fechaInicio}</span>
+                <h1 className="text-3xl font-extrabold mb-4 text-purple-700">{repo.projectname}</h1>
+                <p className="mb-6 text-base text-gray-700">{repo.description}</p>
+                <div className="mb-3 flex flex-wrap gap-x-8 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <strong>Fecha inicio:</strong>
+                    <span>{repo.fechaInicio}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <strong>Fecha fin:</strong>
+                    <span>{repo.fechaFin || 'No especificada'}</span>
+                  </div>
                 </div>
-                <div className="mb-3 flex justify-between">
-                  <strong>Fecha fin:</strong>
-                  <span>{repo.fechaFin || 'No especificada'}</span>
-                </div>
-                <div className="mb-3 flex justify-between items-center">
+                <div className="mb-3 flex items-center gap-2">
                   <strong>Archivo:</strong>
                   {repo.fileName ? (
                     <span className="flex items-center gap-2">
@@ -246,79 +275,105 @@ const ProjectDetails = () => {
                     <span className="text-gray-500">Sin archivo</span>
                   )}
                 </div>
-                {repo.client && (
-                  <div className="mb-3 flex justify-between">
-                    <strong>Cliente:</strong>
-                    <span>{repo.client.name}</span>
-                  </div>
-                )}
-                <div className="mb-3 flex justify-between">
+                <div className="mb-3 flex items-center gap-2">
                   <strong>Propietario:</strong>
                   <span>{repo.owner?.username}</span>
                 </div>
                 <button
-                  className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center gap-2 mx-auto"
+                  className="mt-6 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded text-lg flex items-center gap-2 w-fit"
                   onClick={handleEdit}
                 >
                   <FaEdit /> Editar
                 </button>
               </>
             )}
-          </div>
-          {/* Columna derecha: Colaboradores y acciones */}
-          <div className="bg-white rounded-xl shadow p-6 flex flex-col">
-            <h2 className="text-2xl font-semibold mb-4 text-purple-700">Colaboradores</h2>
-            <div className="flex-1 overflow-auto">
-              {/* Lista de colaboradores */}
-              <ul className="space-y-3">
-                {repo.colaboradores?.map(colaborador => (
-                  <li key={colaborador.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={colaborador.avatar || '/default-avatar.png'}
-                        alt={colaborador.username}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <span className="block text-sm font-medium text-gray-800">{colaborador.username}</span>
-                        <span className="block text-xs text-gray-500">{colaborador.email}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <button
-                        onClick={() => setShowColabModal(true)}
-                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm flex items-center gap-1"
+          </section>
+          {/* Columna derecha: Clientes y Colaboradores */}
+          <div className="flex flex-col gap-6">
+            {/* Cliente */}
+            <section className="bg-white rounded-xl border-2 border-purple-200 p-6 flex flex-col min-h-[80px]">
+              <h2 className="text-xl font-bold mb-2 text-purple-700">Cliente</h2>
+              <div className="flex-1 flex flex-col items-start justify-center">
+                <div className="mb-2">
+                  <span className="block text-base font-semibold text-gray-800">
+                    {repo.client?.name || <span className="text-gray-400">Sin cliente</span>}
+                  </span>
+                  {repo.client?.email && (
+                    <span className="block text-xs text-gray-500">{repo.client.email}</span>
+                  )}
+                </div>
+                <button
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 font-semibold shadow"
+                  onClick={() => setShowClientModal(true)}
+                >
+                  {repo.client ? 'Cambiar cliente' : 'Asignar cliente'}
+                </button>
+              </div>
+            </section>
+            {/* Colaboradores */}
+            <section className="bg-white rounded-xl border-2 border-purple-200 p-6 flex flex-col min-h-[160px]">
+              <h2 className="text-xl font-bold mb-2 text-purple-700">Colaboradores</h2>
+              <div className="flex-1 overflow-auto max-h-40">
+                <ul className="space-y-2">
+                  {repo.colaboradores?.length === 0 ? (
+                    <li className="text-gray-400 text-center py-4">No hay colaboradores en este proyecto.</li>
+                  ) : (
+                    repo.colaboradores.map(colaborador => (
+                      <li
+                        key={colaborador.id}
+                        className="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
+                        style={{ minHeight: 40, maxHeight: 40 }}
                       >
-                        <FaUserFriends className="text-xs" /> Ver perfil
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="mt-4">
-              <button
-                onClick={() => setShowColabModal(true)}
-                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center justify-center gap-2"
-              >
-                <FaUserFriends /> Agregar colaborador
-              </button>
-            </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 text-lg">
+                            <FaUserTie />
+                          </div>
+                          <div>
+                            <span className="block text-sm font-semibold text-gray-800">{colaborador.username}</span>
+                            <span className="block text-xs text-gray-500">{colaborador.email}</span>
+                          </div>
+                        </div>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowColabModal(true)}
+                  className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center justify-center gap-2 font-semibold shadow"
+                >
+                  <FaUserFriends /> Agregar colaborador
+                </button>
+              </div>
+            </section>
           </div>
         </div>
-      </div>
+        {/* Sección de ficheros */}
+        <section className="bg-white rounded-xl border-2 border-purple-200 p-8 mt-8 min-h-[200px]">
+          <h2 className="text-2xl font-bold mb-4 text-purple-700 flex items-center gap-2">
+            <FaFolderOpen /> Ficheros
+          </h2>
+          <div className="text-gray-400 text-center py-10">
+            Aquí aparecerán los ficheros del proyecto.
+          </div>
+        </section>
+      </main>
       {/* Modal de cliente */}
       <ClientModal
         isOpen={showClientModal}
         onClose={() => setShowClientModal(false)}
-        onAssign={handleAssignClient}
-        currentClient={repo.client}
+        onSave={handleSaveClient}
+        existingClients={clients}
+        clientToEdit={null}
       />
       {/* Modal de colaboradores */}
       <ColaboradoresModal
-        isOpen={showColabModal}
+        open={showColabModal} 
         onClose={() => setShowColabModal(false)}
         repoId={repo.id}
+        ownerId={repo.owner?.id}
+        onAddColaborador={handleAddColaborador}
       />
     </div>
   );

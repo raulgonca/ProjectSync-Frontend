@@ -108,6 +108,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients, clientToEdit })
       setIsSubmitting(true);
       try {
         if (clientToEdit) {
+          // Llama a onSave con el id para editar
           await onSave({ ...formData, id: clientToEdit.id });
         } else {
           await onSave(formData);
@@ -115,8 +116,6 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients, clientToEdit })
         setFormData(initialFormData);
         onClose();
       } catch (error) {
-        console.error('Error al guardar el cliente:', error);
-        console.error('Detalles del error:', error.response ? error.response.data : 'No hay detalles disponibles');
         setErrors({
           submit: 'Ha ocurrido un error al guardar el cliente. Por favor, inténtalo de nuevo.'
         });

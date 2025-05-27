@@ -135,25 +135,30 @@ const Sidebar = () => {
       </nav>
 
       {/* Perfil de usuario en la parte inferior */}
-      <div className="border-t border-purple-700 p-4">
-        <div className={`flex ${collapsed ? 'justify-center' : 'items-center'}`}>
-          <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-sm">
-            {user?.username?.charAt(0) || 'U'}
+      <div className="border-t border-purple-700 px-4 py-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-lg font-bold select-none">
+            <span className="mx-auto block leading-none">{user?.username?.charAt(0) || 'U'}</span>
           </div>
-          {!collapsed && (
-            <div className="ml-3">
-              <p className="text-sm font-medium">{user?.username || 'Usuario'}</p>
-              <button 
-                className="text-xs text-gray-300 hover:text-white"
-                onClick={() => {
-                  authService.logout();
-                  window.location.reload();
-                }}
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          )}
+          <div className="flex flex-col">
+            <Link
+              to="/main/profile"
+              className="text-base font-semibold hover:underline text-white"
+              title="Ver perfil"
+              style={{ lineHeight: 1 }}
+            >
+              {user?.username || 'Usuario'}
+            </Link>
+            <button
+              className="text-xs text-gray-300 hover:text-white mt-1 text-left"
+              onClick={() => {
+                authService.logout();
+                window.location.reload();
+              }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -19,12 +19,14 @@ const Users = () => {
   
   // Estados para modal y gestión de usuarios
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [editUser, setEditUser] = useState(null);
   
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(12);
+  
+  // Estado para confirmación de eliminación
+  const [confirmDelete, setConfirmDelete] = useState(null);
   
   // Función memoizada para cargar usuarios
   const fetchUsers = useCallback(async () => {
@@ -34,7 +36,6 @@ const Users = () => {
       // Ahora data es un array plano
       setUsers(Array.isArray(data) ? data : []);
       setError(null);
-      toast.success('Usuarios cargados correctamente');
     } catch (err) {
       console.error('Error al cargar los usuarios:', err);
       setError('No se pudieron cargar los usuarios. Por favor, inténtalo de nuevo más tarde.');
@@ -89,10 +90,10 @@ const Users = () => {
       setLoading(true);
       let updatedUser;
       
-      if (currentUser) {
+      if (editUser) {
         // Actualizar usuario existente
-        updatedUser = await userService.updateUser(currentUser.id, userData);
-        setUsers(users.map(user => user.id === currentUser.id ? updatedUser : user));
+        updatedUser = await userService.updateUser(editUser.id, userData);
+        setUsers(users.map(user => user.id === editUser.id ? updatedUser : user));
         toast.success('Usuario actualizado correctamente');
       } else {
         // Crear nuevo usuario
@@ -103,7 +104,7 @@ const Users = () => {
       }
       
       setIsModalOpen(false);
-      setCurrentUser(null);
+      setEditUser(null);
       return updatedUser;
     } catch (error) {
       console.error('Error al guardar el usuario:', error);
@@ -114,9 +115,22 @@ const Users = () => {
     }
   };
 
-  // Editar usuario
+  // Obtener rol del usuario actual
+  const user = JSON.parse(localStorage.getItem('user'));
+  const roles = user?.roles || user?.authorities || [];
+  const isAdmin = Array.isArray(roles)
+    ? roles.some(r => r === 'ROLE_ADMIN' || r.authority === 'ROLE_ADMIN')
+    : false;
+
+  // Función para editar usuario (solo para admin)
   const handleEditUser = (user) => {
-    setCurrentUser(user);
+    setEditUser(user);
+    setIsModalOpen(true);
+  };
+
+  // Función para crear usuario
+  const handleCreateUser = () => {
+    setEditUser(null);
     setIsModalOpen(true);
   };
 
@@ -388,15 +402,16 @@ const Users = () => {
       )}
       
       {/* Modal para crear/editar usuario */}
-      {isModalOpen && (
+      {isAdmin && (
         <UserModal
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
-            setCurrentUser(null);
+            setEditUser(null);
           }}
           onSave={handleSaveUser}
-          user={currentUser}
+          existingUsers={users}
+          userToEdit={editUser}
         />
       )}
     </div>

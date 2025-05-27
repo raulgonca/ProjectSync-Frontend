@@ -3,7 +3,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './components/Sidebar'; // Asegúrate de crear este componente
-import UserDashboard from './pages/UserDashboard';
 
 function App() {
   return (
@@ -13,7 +12,7 @@ function App() {
       
       {/* Contenido principal */}
       <main className="flex-1 overflow-y-auto p-6">
-        <Outlet />
+        <Outlet className="bg-white" />
         {/* Añade la ruta si usas rutas anidadas, o en tu archivo de rutas principal */}
         {/* <Route path="/main/user-dashboard" element={<UserDashboard />} /> */}
       </main>

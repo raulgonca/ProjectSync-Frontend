@@ -58,7 +58,7 @@ const fetchFromAPI = async (endpoint, options = {}) => {
     try {
       data = responseText ? JSON.parse(responseText) : {};
     } catch (e) {
-      console.error('Respuesta no válida del servidor:', responseText );
+      console.error('Respuesta no válida del servidor:', responseText + e );
       throw new Error('Error al procesar la respuesta del servidor: ' + responseText);
     }
 
@@ -131,20 +131,36 @@ export const userService = {
   },
   // Actualizar usuario
   updateUser: async (id, userData) => {
-    return await fetchFromAPI(`/updateusers/${id}`, { // path correcto según backend
+    return await fetchFromAPI(`/user/update/${id}`, {
       method: 'PUT',
       body: userData
     });
   },
+  // Cambiar email del usuario
+  updateEmail: async (id, email) => {
+    return await fetchFromAPI(`/user/update-email/${id}`, {
+      method: 'PUT',
+      body: { email }
+    });
+  },
+  // Cambiar contraseña del usuario
+  updatePassword: async (id, currentPassword, newPassword) => {
+    return await fetchFromAPI(`/user/update-password/${id}`, {
+      method: 'PUT',
+      body: { currentPassword, newPassword }
+    });
+  },
   // Eliminar usuario
   deleteUser: async (id) => {
-    return await fetchFromAPI(`/deleteusers/${id}`, { // path correcto según backend
+    // Backend espera /user/delete/{id}
+    return await fetchFromAPI(`/user/delete/${id}`, {
       method: 'DELETE'
     });
   },
   // Crear nuevo usuario
   createUser: async (userData) => {
-    return await fetchFromAPI('/user/new', { // path correcto según backend
+    // Backend espera /user/new
+    return await fetchFromAPI('/user/new', {
       method: 'POST',
       body: userData
     });
@@ -176,7 +192,7 @@ export const projectService = {
   },
   // Obtener un proyecto por ID
   getProjectById: async (id) => {
-    return await fetchFromAPI(`/repo/${id}`);  // Corregido a la ruta correcta
+    return await fetchFromAPI(`/repos/find/${id}`);  // Corregido a la ruta correctaend
   },
   // Crear nuevo proyecto
   createProject: async (projectData) => {
@@ -237,22 +253,34 @@ export const clientService = {
   },
   // Actualizar cliente
   updateClient: async (id, clientData) => {
-    return await fetchFromAPI(`/clients/${id}`, {
+    // Backend espera /updateclient/{id} y método PUT
+    return await fetchFromAPI(`/updateclient/${id}`, {
       method: 'PUT',
       body: clientData
     });
   },
   // Eliminar cliente
   deleteClient: async (id) => {
-    return await fetchFromAPI(`/clients/${id}`, {
+    // Backend espera /deleteclient/{id}
+    return await fetchFromAPI(`/deleteclient/${id}`, {
       method: 'DELETE'
     });
   },
   // Crear nuevo cliente
   createClient: async (clientData) => {
+    // Backend espera /createclient
     return await fetchFromAPI('/createclient', {
       method: 'POST',
       body: clientData
+    });
+  },
+  // Importar clientes desde CSV
+  importClientsFromCSV: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await fetchFromAPI('/clients/import', {
+      method: 'POST',
+      body: formData
     });
   }
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaInfoCircle, FaUser, FaEnvelope, FaLock, FaIdCard, FaUserTag } from 'react-icons/fa';
 
-const UserModal = ({ isOpen, onClose, onSave, existingUsers = [], userToEdit }) => {
+const UserModal = ({ isOpen, onClose, onSave, existingUsers, userToEdit }) => {
   const initialFormData = {
     username: '',
     email: '',
@@ -28,7 +28,7 @@ const UserModal = ({ isOpen, onClose, onSave, existingUsers = [], userToEdit }) 
     } else {
       setFormData(initialFormData);
     }
-  }, [userToEdit, isOpen]);
+  }, [userToEdit]);
 
   if (!isOpen) return null;
 

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { clientService } from '../../services/api';
 import ClientCard from '../../components/ClientCard/ClientCard';
 import ClientModal from '../../components/ClientModal/ClientModal';
-import { FaPlus, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaFilter, FaFileExport, FaFileImport } from 'react-icons/fa';
 import LoadingSpinner from '../../components/LoadingSpinner'; // Nuevo loader
+import { toast } from 'react-toastify';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
@@ -13,6 +14,7 @@ const Clients = () => {
   const [filterType, setFilterType] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
   const user = JSON.parse(localStorage.getItem('user'));
   const roles = user?.roles || user?.authorities || [];
   const isAdmin = Array.isArray(roles)
@@ -65,17 +67,29 @@ const Clients = () => {
 
   const handleSaveClient = async (clientData) => {
     try {
-      console.log('Datos a enviar:', clientData);
-      const newClient = await clientService.createClient(clientData);
-      console.log('Respuesta del servidor:', newClient);
-      
+      let response;
+      if (clientData.id) {
+        response = await clientService.updateClient(clientData.id, {
+          name: clientData.name,
+          cif: clientData.cif,
+          email: clientData.email,
+          phone: clientData.phone,
+          web: clientData.web
+        });
+      } else {
+        response = await clientService.createClient({
+          name: clientData.name,
+          cif: clientData.cif,
+          email: clientData.email,
+          phone: clientData.phone,
+          web: clientData.web
+        });
+      }
       // Recargar la lista completa de clientes para asegurar datos actualizados
       const updatedClients = await clientService.getAllClients();
       setClients(updatedClients);
-      
-      return newClient;
+      return response;
     } catch (error) {
-      console.error('Error al crear el cliente:', error);
       throw error;
     }
   };
@@ -83,6 +97,57 @@ const Clients = () => {
   // Función para editar cliente (solo para admin)
   const handleEditClient = (client) => {
     if (isAdmin) setEditClient(client);
+  };
+
+  // Exportar clientes a CSV
+  const exportToCSV = () => {
+    try {
+      const headers = ['ID', 'Nombre', 'CIF', 'Teléfono', 'Email', 'Web'];
+      const clientRows = clients.map(client => [
+        client.id,
+        client.name || '',
+        client.cif || '',
+        client.phone || '',
+        client.email || '',
+        client.web || ''
+      ]);
+      const csvContent = [
+        headers.join(','),
+        ...clientRows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'clientes.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Clientes exportados correctamente');
+    } catch (error) {
+      toast.error('Error al exportar clientes');
+    }
+  };
+
+  // Importar clientes desde CSV
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      // Llama directamente al servicio que usa FormData
+      await clientService.importClientsFromCSV(file);
+      toast.success('Clientes importados correctamente');
+      // Recarga la lista
+      const updatedClients = await clientService.getAllClients();
+      setClients(updatedClients);
+    } catch (err) {
+      toast.error('Error al importar clientes');
+    } finally {
+      setImporting(false);
+      e.target.value = '';
+    }
   };
 
   if (loading) {
@@ -95,9 +160,9 @@ const Clients = () => {
 
   return (
     <div className="p-5">
+      {/* Cabecera con título y acciones */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-800 mb-4 md:mb-0">Clientes</h1>
-        
         <div className="flex flex-col w-full md:w-auto space-y-2 md:space-y-0 md:space-x-2">
           <div className="flex space-x-2">
             <div className="relative flex-grow">
@@ -126,6 +191,23 @@ const Clients = () => {
               <FaPlus className="mr-2" />
               Nuevo Cliente
             </button>
+            <button
+              onClick={exportToCSV}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center transition-colors"
+              title="Exportar clientes"
+            >
+              <FaFileExport className="mr-1" /> Exportar
+            </button>
+            <label className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center transition-colors cursor-pointer" title="Importar clientes">
+              <FaFileImport className="mr-1" /> Importar
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleImportCSV}
+                className="hidden"
+                disabled={importing}
+              />
+            </label>
           </div>
           
           {showFilters && (
