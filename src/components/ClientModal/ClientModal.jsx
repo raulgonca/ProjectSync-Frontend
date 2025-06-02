@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaInfoCircle, FaBuilding, FaIdCard, FaPhone, FaEnvelope, FaGlobe } from 'react-icons/fa';
 
+// El modal necesita recibir estos props para funcionar correctamente:
+// - isOpen: boolean (si el modal está abierto)
+// - onClose: función para cerrar el modal
+// - onSave: función para guardar (crear o editar) el cliente
+// - existingClients: array de clientes existentes (para validaciones)
+// - clientToEdit: objeto cliente a editar o null para crear uno nuevo
+
 const ClientModal = ({ isOpen, onClose, onSave, existingClients, clientToEdit }) => {
   const initialFormData = {
     name: '',
@@ -124,6 +131,7 @@ const ClientModal = ({ isOpen, onClose, onSave, existingClients, clientToEdit })
       }
     }
   };
+
 
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">

@@ -77,7 +77,10 @@ const UserDashboard = () => {
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-purple-800 text-base truncate group-hover:underline">
-                    {p.projectname}
+                    {/* Primera letra en mayúscula */}
+                    {p.projectname
+                      ? p.projectname.charAt(0).toUpperCase() + p.projectname.slice(1)
+                      : ''}
                   </div>
                   <div className="flex flex-wrap gap-4 mt-1 text-xs text-gray-700">
                     <span>

@@ -96,7 +96,16 @@ const Clients = () => {
 
   // Función para editar cliente (solo para admin)
   const handleEditClient = (client) => {
-    if (isAdmin) setEditClient(client);
+    if (isAdmin) {
+      setEditClient(client);
+      setIsModalOpen(true);
+    }
+  };
+
+  // Función para crear cliente (nuevo)
+  const handleCreateClient = () => {
+    setEditClient(null); // Asegura que no hay cliente a editar
+    setIsModalOpen(true); // Abre el modal en modo "nuevo"
   };
 
   // Exportar clientes a CSV
@@ -185,7 +194,7 @@ const Clients = () => {
             </button>
             
             <button 
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleCreateClient}
               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
             >
               <FaPlus className="mr-2" />
@@ -199,6 +208,7 @@ const Clients = () => {
               <FaFileExport className="mr-1" /> Exportar
             </button>
             <label className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center transition-colors cursor-pointer" title="Importar clientes">
+              {/* Cambia el icono de importar por uno diferente, por ejemplo FaFileImport */}
               <FaFileImport className="mr-1" /> Importar
               <input
                 type="file"
@@ -275,14 +285,14 @@ const Clients = () => {
       {/* Modal de edición solo para admin */}
       {isAdmin && (
         <ClientModal 
-          isOpen={isModalOpen || !!editClient}
+          isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
             setEditClient(null);
           }}
           onSave={handleSaveClient}
           existingClients={clients}
-          clientToEdit={editClient}
+          clientToEdit={editClient} // Será null al crear
         />
       )}
     </div>

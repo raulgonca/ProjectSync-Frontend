@@ -35,13 +35,19 @@ const Profile = () => {
     }
     setPasswordLoading(true);
     try {
+      // Llama correctamente al endpoint de tu backend
       await userService.updatePassword(user.id, currentPassword, newPassword);
+
       toast.success('Contraseña actualizada correctamente');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      toast.error(err.message || 'Error al actualizar la contraseña');
+      if (err.message && err.message.includes('404')) {
+        toast.error('No se pudo actualizar la contraseña. Ruta no encontrada en el servidor.');
+      } else {
+        toast.error(err.message || 'Error al actualizar la contraseña');
+      }
     } finally {
       setPasswordLoading(false);
     }

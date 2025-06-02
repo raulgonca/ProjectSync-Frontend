@@ -324,3 +324,38 @@ export const mainService = {
     return await fetchFromAPI('/main');
   }
 };
+
+export const projectFileService = {
+  // Subir un archivo a un proyecto
+  uploadFile: async (projectId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await fetchFromAPI(`/projects/${projectId}/files`, {
+      method: 'POST',
+      body: formData
+    });
+  },
+  // Listar archivos de un proyecto
+  listFiles: async (projectId) => {
+    return await fetchFromAPI(`/projects/${projectId}/files`);
+  },
+  // Descargar un archivo de un proyecto
+  downloadFile: (projectId, fileId) => {
+    // Devuelve la URL para descargar el archivo (puedes usar fetch si quieres forzar descarga)
+    const API_URL = import.meta.env.VITE_URL_API;
+    return `${API_URL}/api/projects/${projectId}/files/${fileId}/download`;
+  },
+  // Eliminar un archivo de un proyecto
+  deleteFile: async (projectId, fileId) => {
+    return await fetchFromAPI(`/projects/${projectId}/files/${fileId}`, {
+      method: 'DELETE'
+    });
+  },
+  // Renombrar un archivo de un proyecto
+  renameFile: async (projectId, fileId, newName) => {
+    return await fetchFromAPI(`/projects/${projectId}/files/${fileId}/rename`, {
+      method: 'PUT',
+      body: { originalName: newName }
+    });
+  }
+};

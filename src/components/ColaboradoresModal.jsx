@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { userService, projectService } from '../services/api';
 
-const ColaboradoresModal = ({ open, onClose, repoId, ownerId }) => {
+const ColaboradoresModal = ({ open, onClose, repoId, ownerId, onAddColaborador }) => {
   const [allUsers, setAllUsers] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +28,7 @@ const ColaboradoresModal = ({ open, onClose, repoId, ownerId }) => {
   const handleAdd = async (userId) => {
     setAccion('add');
     await projectService.addCollaborator(repoId, userId);
+    onAddColaborador(userId); // Llama a la función pasada por props
     setAccion(null);
   };
 
@@ -39,8 +40,8 @@ const ColaboradoresModal = ({ open, onClose, repoId, ownerId }) => {
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl relative border border-purple-200">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/10 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl border-2 border-purple-200 shadow-lg p-6 w-full max-w-3xl relative pt-10">
         <button
           className="absolute top-3 right-3 text-gray-400 hover:text-purple-700 text-2xl font-bold"
           onClick={onClose}

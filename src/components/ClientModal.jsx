@@ -30,10 +30,11 @@ const ClientModal = ({ open, onClose, onAssign = () => {}, assignedClientId }) =
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/10 backdrop-blur-sm">
-      <div className="bg-white rounded shadow-lg p-6 w-full max-w-5xl relative">
+      <div className="bg-white rounded-2xl border-2 border-purple-200 shadow-lg p-6 w-full max-w-5xl relative pt-10">
         <button
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+          className="absolute top-3 right-3 text-gray-400 hover:text-purple-700 text-2xl font-bold z-20"
           onClick={onClose}
+          aria-label="Cerrar"
         >
           ×
         </button>

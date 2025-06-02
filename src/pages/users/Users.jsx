@@ -249,10 +249,7 @@ const Users = () => {
             </button>
             
             <button 
-              onClick={() => {
-                setCurrentUser(null);
-                setIsModalOpen(true);
-              }}
+              onClick={handleCreateUser}
               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
             >
               <FaPlus className="mr-2" />
